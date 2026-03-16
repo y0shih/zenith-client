@@ -44,31 +44,26 @@ export function JobFeedPanel({
   ]
 
   return (
-    <aside className="w-full lg:w-1/2 lg:border-r border-border overflow-y-auto bg-card transition-all duration-300">
-      <div className="flex flex-col h-full">
-        {/* Mobile centered container with padding */}
-        <div className="w-full px-2 lg:px-0">
-          {/* Header */}
-          <div className="sticky top-0 z-10 border-b border-border bg-card p-4 sm:p-6">
-            <h1 className="text-2xl font-bold text-card-foreground">Jobs</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {jobs.length} opportunities available
-            </p>
-          </div>
+    <aside className="w-full lg:w-1/2 border-r border-border bg-card transition-all duration-300 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="sticky top-0 z-10 border-b border-border bg-card p-4 sm:p-6 px-2 lg:px-6">
+        <h1 className="text-2xl font-bold text-card-foreground">Jobs</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {jobs.length} opportunities available
+        </p>
+      </div>
 
-          {/* Job List */}
-          <div className="overflow-y-auto">
-            <div className="divide-y divide-border">
-              {jobs.map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  isSelected={selectedJobId === job.id}
-                  onSelect={onSelectJob}
-                />
-              ))}
-            </div>
-          </div>
+      {/* Job List - scrollable with mobile padding */}
+      <div className="flex-1 overflow-y-auto px-2 lg:px-0">
+        <div className="divide-y divide-border">
+          {jobs.map((job) => (
+            <JobCard
+              key={job.id}
+              job={job}
+              isSelected={selectedJobId === job.id}
+              onSelect={onSelectJob}
+            />
+          ))}
         </div>
       </div>
     </aside>
