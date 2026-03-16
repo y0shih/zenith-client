@@ -19,7 +19,7 @@ export function JobBoardLayout() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      {/* Feed Panel */}
+      {/* Feed Panel - Centered with padding on mobile, transitions to split-view on desktop */}
       <JobFeedPanel
         selectedJobId={selectedJobId}
         onSelectJob={setSelectedJobId}

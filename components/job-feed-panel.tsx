@@ -43,8 +43,10 @@ export function JobFeedPanel({
   ]
 
   return (
-    <aside className="w-full lg:w-1/2 border-r border-border overflow-y-auto bg-card">
-      <div className="flex flex-col h-full">
+    <aside className="w-full lg:w-1/2 border-r border-border overflow-y-auto bg-card transition-all duration-300">
+      <div className="flex flex-col h-full px-2 lg:px-0">
+        {/* Mobile centered container */}
+        <div className="w-full max-w-full lg:max-w-none mx-auto">
         {/* Header */}
         <div className="sticky top-0 z-10 border-b border-border bg-card p-4 sm:p-6">
           <h1 className="text-2xl font-bold text-card-foreground">Jobs</h1>
@@ -53,44 +55,45 @@ export function JobFeedPanel({
           </p>
         </div>
 
-        {/* Job List */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="divide-y divide-border">
-            {jobs.map((job) => (
-              <button
-                key={job.id}
-                onClick={() => onSelectJob(job.id)}
-                className={`w-full p-4 sm:p-6 text-left transition-colors ${
-                  selectedJobId === job.id
-                    ? 'bg-primary/10 border-l-4 border-primary'
-                    : 'hover:bg-muted/50'
-                }`}
-              >
-                <h2 className="text-lg font-semibold text-card-foreground">
-                  {job.title}
-                </h2>
-                <p className="text-sm font-medium text-muted-foreground mt-1">
-                  {job.company}
-                </p>
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                  {job.description}
-                </p>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {job.roles.map((role) => (
-                    <span
-                      key={role}
-                      className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded"
-                    >
-                      {role}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
-                  <span>{job.applicantCount} applicants</span>
-                  <span>{job.postedDate}</span>
-                </div>
-              </button>
-            ))}
+          {/* Job List */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="divide-y divide-border">
+              {jobs.map((job) => (
+                <button
+                  key={job.id}
+                  onClick={() => onSelectJob(job.id)}
+                  className={`w-full p-4 sm:p-6 text-left transition-all duration-200 ${
+                    selectedJobId === job.id
+                      ? 'bg-primary/10 border-l-4 border-primary'
+                      : 'hover:bg-muted/50'
+                  }`}
+                >
+                  <h2 className="text-lg font-semibold text-card-foreground">
+                    {job.title}
+                  </h2>
+                  <p className="text-sm font-medium text-muted-foreground mt-1">
+                    {job.company}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                    {job.description}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {job.roles.map((role) => (
+                      <span
+                        key={role}
+                        className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded"
+                      >
+                        {role}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+                    <span>{job.applicantCount} applicants</span>
+                    <span>{job.postedDate}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
