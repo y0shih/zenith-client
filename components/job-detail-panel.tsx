@@ -7,8 +7,8 @@ interface JobDetailPanelProps {
 export function JobDetailPanel({ selectedJobId }: JobDetailPanelProps) {
   return (
     <aside
-      className={`hidden lg:flex flex-col w-1/2 bg-background border-l border-border overflow-y-auto ${
-        !selectedJobId ? 'items-center justify-center' : ''
+      className={`fixed inset-0 lg:static lg:flex flex-col w-full lg:w-1/2 bg-background lg:border-l border-border overflow-y-auto transition-all duration-300 ${
+        !selectedJobId ? 'hidden lg:flex items-center justify-center' : 'flex'
       }`}
     >
       {selectedJobId ? (
