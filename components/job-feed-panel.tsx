@@ -8,40 +8,42 @@ interface JobFeedPanelProps {
   onSelectJob: (jobId: string) => void
 }
 
+// Mock job data - shared with job-detail-panel
+const mockJobs: Job[] = [
+  {
+    id: '1',
+    title: 'Senior Full Stack Engineer',
+    company: 'Tech Corp',
+    description: 'We are looking for an experienced full-stack engineer to join our growing team. You will work on building scalable web applications using modern technologies.',
+    roles: ['Design and implement RESTful APIs', 'Build responsive web interfaces', 'Optimize database queries', 'Mentor junior developers', 'Participate in code reviews'],
+    applicantCount: 24,
+    postedDate: '2 days ago',
+  },
+  {
+    id: '2',
+    title: 'Product Designer',
+    company: 'Design Studios',
+    description: 'Join our design team and create beautiful user experiences. We are looking for a talented product designer with a strong portfolio.',
+    roles: ['Create wireframes and prototypes', 'Conduct user research', 'Collaborate with engineers', 'Design systems development'],
+    applicantCount: 18,
+    postedDate: '1 day ago',
+  },
+  {
+    id: '3',
+    title: 'DevOps Engineer',
+    company: 'Cloud Systems',
+    description: 'Looking for a DevOps expert to manage our cloud infrastructure and improve deployment processes. Experience with Kubernetes and AWS is essential.',
+    roles: ['Manage cloud infrastructure', 'Build CI/CD pipelines', 'Monitor system performance', 'Implement security protocols'],
+    applicantCount: 15,
+    postedDate: '3 days ago',
+  },
+]
+
 export function JobFeedPanel({
   selectedJobId,
   onSelectJob,
 }: JobFeedPanelProps) {
-  // Placeholder data for Phase 1
-  const jobs: Job[] = [
-    {
-      id: '1',
-      title: 'Senior Frontend Engineer',
-      company: 'Tech Corp',
-      description: 'Build amazing user experiences with React',
-      roles: ['React', 'TypeScript', 'Tailwind'],
-      applicantCount: 24,
-      postedDate: '2 days ago',
-    },
-    {
-      id: '2',
-      title: 'Full Stack Developer',
-      company: 'StartUp Inc',
-      description: 'Join our growing team and build innovative solutions',
-      roles: ['Node.js', 'React', 'PostgreSQL'],
-      applicantCount: 18,
-      postedDate: '1 week ago',
-    },
-    {
-      id: '3',
-      title: 'Product Designer',
-      company: 'Design Studio',
-      description: 'Create beautiful and functional user interfaces',
-      roles: ['Figma', 'UI Design', 'Prototyping'],
-      applicantCount: 12,
-      postedDate: '3 days ago',
-    },
-  ]
+  const jobs = mockJobs
 
   return (
     <aside className="w-full lg:w-1/2 border-r border-border bg-card transition-all duration-300 flex flex-col overflow-hidden">
