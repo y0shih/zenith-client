@@ -1,4 +1,4 @@
-import { Job } from './job-board-layout'
+import { Job } from './types'
 
 interface JobCardProps {
   job: Job
@@ -16,21 +16,12 @@ export function JobCard({ job, isSelected, onSelect }: JobCardProps) {
           : 'hover:bg-muted/50'
       }`}
     >
-      <h2 className="text-lg font-semibold text-card-foreground">
-        {job.title}
-      </h2>
-      <p className="text-sm font-medium text-muted-foreground mt-1">
-        {job.company}
-      </p>
-      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-        {job.description}
-      </p>
+      <h2 className="text-lg font-semibold text-card-foreground">{job.title}</h2>
+      <p className="text-sm font-medium text-muted-foreground mt-1">{job.company}</p>
+      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{job.description}</p>
       <div className="flex flex-wrap gap-2 mt-3">
         {job.roles.map((role) => (
-          <span
-            key={role}
-            className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded"
-          >
+          <span key={role} className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
             {role}
           </span>
         ))}

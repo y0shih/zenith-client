@@ -1,6 +1,6 @@
 'use client'
 
-import { Job } from './job-board-layout'
+import { Job } from './types'
 import { JobCard } from './job-card'
 
 interface JobFeedPanelProps {
@@ -8,7 +8,7 @@ interface JobFeedPanelProps {
   onSelectJob: (jobId: string) => void
 }
 
-// Mock job data - shared with job-detail-panel
+// Mock data — will be replaced by job.service.ts once API is connected
 const mockJobs: Job[] = [
   {
     id: '1',
@@ -39,23 +39,16 @@ const mockJobs: Job[] = [
   },
 ]
 
-export function JobFeedPanel({
-  selectedJobId,
-  onSelectJob,
-}: JobFeedPanelProps) {
+export function JobFeedPanel({ selectedJobId, onSelectJob }: JobFeedPanelProps) {
   const jobs = mockJobs
 
   return (
     <aside className="w-full lg:w-1/2 border-r border-border bg-card transition-all duration-300 flex flex-col overflow-hidden">
-      {/* Header */}
       <div className="sticky top-0 z-10 border-b border-border bg-card p-4 sm:p-6 px-2 lg:px-6">
         <h1 className="text-2xl font-bold text-card-foreground">Jobs</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {jobs.length} opportunities available
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">{jobs.length} opportunities available</p>
       </div>
 
-      {/* Job List - scrollable with mobile padding */}
       <div className="flex-1 overflow-y-auto px-2 lg:px-0">
         <div className="divide-y divide-border">
           {jobs.map((job) => (

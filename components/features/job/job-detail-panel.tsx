@@ -1,13 +1,13 @@
 'use client'
 
-import { Job } from './job-board-layout'
+import { Job } from './types'
 import { JobDetailView } from './job-detail-view'
 
 interface JobDetailPanelProps {
   selectedJobId: string | null
 }
 
-// Mock job data for demo - will be replaced with API calls
+// Mock data — will be replaced by job.service.ts once API is connected
 const mockJobs: Record<string, Job> = {
   '1': {
     id: '1',

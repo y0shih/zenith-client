@@ -22,22 +22,13 @@ export function AppHeader() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-6">
-          <Link
-            href="/jobs"
-            className="text-sm text-foreground hover:text-primary transition-colors"
-          >
+          <Link href="/jobs" className="text-sm text-foreground hover:text-primary transition-colors">
             Jobs
           </Link>
-          <Link
-            href="/employers"
-            className="text-sm text-foreground hover:text-primary transition-colors"
-          >
+          <Link href="/employers" className="text-sm text-foreground hover:text-primary transition-colors">
             Employers
           </Link>
-          <Link
-            href="/messages"
-            className="text-sm text-foreground hover:text-primary transition-colors"
-          >
+          <Link href="/messages" className="text-sm text-foreground hover:text-primary transition-colors">
             Messages
           </Link>
           <Link
@@ -57,14 +48,9 @@ export function AppHeader() {
         <div className="flex items-center gap-4">
           <ThemeToggle />
 
-          {/* Notifications Bell - Mobile & Desktop */}
+          {/* Notifications Bell - Mobile */}
           <button className="relative p-2 hover:bg-muted rounded-lg transition-colors md:hidden">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -90,16 +76,10 @@ export function AppHeader() {
 
             {isUserMenuOpen && (
               <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg overflow-hidden">
-                <Link
-                  href="/profile"
-                  className="block px-4 py-2 text-sm hover:bg-muted transition-colors"
-                >
+                <Link href="/profile" className="block px-4 py-2 text-sm hover:bg-muted transition-colors">
                   My Profile
                 </Link>
-                <Link
-                  href="/profile"
-                  className="block px-4 py-2 text-sm hover:bg-muted transition-colors"
-                >
+                <Link href="/profile" className="block px-4 py-2 text-sm hover:bg-muted transition-colors">
                   Settings
                 </Link>
                 <button className="w-full text-left px-4 py-2 text-sm hover:bg-muted transition-colors border-t border-border">
@@ -114,18 +94,8 @@ export function AppHeader() {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="md:hidden p-2 hover:bg-muted rounded-lg transition-colors"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
         </div>
@@ -135,36 +105,11 @@ export function AppHeader() {
       {isMenuOpen && (
         <div className="md:hidden border-t border-border bg-card">
           <div className="px-4 py-2 space-y-2">
-            <Link
-              href="/jobs"
-              className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors"
-            >
-              Jobs
-            </Link>
-            <Link
-              href="/employers"
-              className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors"
-            >
-              Employers
-            </Link>
-            <Link
-              href="/messages"
-              className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors"
-            >
-              Messages
-            </Link>
-            <Link
-              href="/notifications"
-              className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors"
-            >
-              Notifications
-            </Link>
-            <Link
-              href="/profile"
-              className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors"
-            >
-              Profile
-            </Link>
+            <Link href="/jobs" className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors">Jobs</Link>
+            <Link href="/employers" className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors">Employers</Link>
+            <Link href="/messages" className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors">Messages</Link>
+            <Link href="/notifications" className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors">Notifications</Link>
+            <Link href="/profile" className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors">Profile</Link>
           </div>
         </div>
       )}

@@ -98,7 +98,7 @@ export default function MessagesPage() {
   return (
     <div className="flex h-[calc(100vh-64px)] bg-background">
       {/* Conversations List */}
-      <div className="w-full md:w-80 border-r border-border flex flex-col overflow-hidden">
+      <div className="w-full md:w-80 border-r border-border flex flex-col overflow-hidden shrink-0">
         <div className="p-4 border-b border-border">
           <h2 className="text-xl font-bold text-foreground">Messages</h2>
         </div>
@@ -157,7 +157,7 @@ export default function MessagesPage() {
                 className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                  className={`max-w-xs lg:max-w-md w-fit px-4 py-2 rounded-lg ${
                     message.sender === 'user'
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-muted text-foreground'

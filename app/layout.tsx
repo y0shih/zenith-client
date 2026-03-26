@@ -1,17 +1,15 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import { ThemeProvider } from '@/components/theme-provider'
-import { AppHeader } from '@/components/app-header'
+import { Space_Grotesk, DM_Sans } from 'next/font/google'
+import { ThemeProvider } from '@/components/layout/theme-provider'
+import { AppHeader } from '@/components/layout/app-header'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: '--font-space-grotesk' });
+const dmSans = DM_Sans({ subsets: ["latin"], variable: '--font-dm-sans' });
 
 export const metadata: Metadata = {
-  title: 'Zenith-Go - Job Board',
+  title: 'Zenith',
   description: 'Discover your next opportunity with Zenith-Go',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
@@ -38,11 +36,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="font-sans antialiased">
+      <body className={`${dmSans.variable} ${spaceGrotesk.variable} font-sans antialiased bg-background text-foreground`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <AppHeader />
           {children}
-          <Analytics />
         </ThemeProvider>
       </body>
     </html>

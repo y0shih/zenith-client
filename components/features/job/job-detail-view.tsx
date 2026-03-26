@@ -2,7 +2,7 @@
 
 import { Heart, MessageCircle, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Job } from './job-board-layout'
+import { Job } from './types'
 
 interface JobDetailViewProps {
   job: Job
@@ -30,7 +30,6 @@ export function JobDetailView({ job }: JobDetailViewProps) {
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Company Section */}
         <div className="p-6 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground mb-3">About the Role</h2>
           <div className="space-y-4">
@@ -49,15 +48,11 @@ export function JobDetailView({ job }: JobDetailViewProps) {
           </div>
         </div>
 
-        {/* Description Section */}
         <div className="p-6 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground mb-3">Description</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {job.description}
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{job.description}</p>
         </div>
 
-        {/* Roles Section */}
         <div className="p-6 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground mb-3">Roles & Responsibilities</h2>
           <ul className="space-y-2">
@@ -70,7 +65,6 @@ export function JobDetailView({ job }: JobDetailViewProps) {
           </ul>
         </div>
 
-        {/* Skills Section */}
         <div className="p-6 border-b border-border">
           <h2 className="text-lg font-semibold text-foreground mb-3">Required Skills</h2>
           <div className="flex flex-wrap gap-2">
@@ -85,7 +79,6 @@ export function JobDetailView({ job }: JobDetailViewProps) {
           </div>
         </div>
 
-        {/* Reactions Section */}
         <div className="p-6 border-b border-border">
           <div className="flex items-center gap-4">
             {reactions.map((reaction) => {
@@ -103,11 +96,9 @@ export function JobDetailView({ job }: JobDetailViewProps) {
           </div>
         </div>
 
-        {/* Comments Section */}
         <div className="p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Comments ({3})</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Comments (3)</h2>
           <div className="space-y-4">
-            {/* Comment Input */}
             <div className="flex gap-3 pb-4 border-b border-border">
               <div className="w-8 h-8 rounded-full bg-muted flex-shrink-0" />
               <input
@@ -116,12 +107,10 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                 className="flex-1 text-sm bg-transparent border border-border rounded-lg px-3 py-2 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
               />
             </div>
-
-            {/* Comments List */}
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-muted flex-shrink-0" />
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-sm text-foreground">John Doe</p>
                     <p className="text-xs text-muted-foreground">2 days ago</p>
@@ -130,12 +119,8 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                     This looks like a great opportunity. Does the role include remote work options?
                   </p>
                   <div className="flex items-center gap-3 mt-2">
-                    <button className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                      Like
-                    </button>
-                    <button className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-                      Reply
-                    </button>
+                    <button className="text-xs text-muted-foreground hover:text-foreground transition-colors">Like</button>
+                    <button className="text-xs text-muted-foreground hover:text-foreground transition-colors">Reply</button>
                   </div>
                 </div>
               </div>
