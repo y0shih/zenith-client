@@ -1,5 +1,5 @@
-import { JobBoardLayout } from '@/components/job-board-layout'
+import { redirect } from 'next/navigation'
 
 export default function Home() {
-  return <JobBoardLayout />
+  redirect('/jobs')
 }
