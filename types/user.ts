@@ -1,5 +1,6 @@
 // User/Profile domain types
 
+export type UserRole = 'candidate' | 'employer' | 'admin'
 export type JobSearchStatus = 'looking_for_work' | 'open_to_offers' | 'closed'
 
 export interface CandidateProfile {

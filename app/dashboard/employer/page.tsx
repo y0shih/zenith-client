@@ -31,10 +31,16 @@ export default function EmployerDashboard() {
           <Link href="/dashboard/employer" className="flex items-center gap-3 px-4 py-3 bg-cta/20 text-white font-bold border-l-4 border-cta">
             <Briefcase className="w-5 h-5" /> Jobs
           </Link>
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
+          <Link href="/dashboard/employer/applications" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
             <Users className="w-5 h-5" /> Applicants
           </Link>
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
+          <Link href="/dashboard/employer/comments" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
+            <Search className="w-5 h-5" /> Comments
+          </Link>
+          <Link href="/dashboard/employer/analytics" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
+            <MapPin className="w-5 h-5" /> Analytics
+          </Link>
+          <Link href="/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
             <Settings className="w-5 h-5" /> Settings
           </Link>
         </nav>

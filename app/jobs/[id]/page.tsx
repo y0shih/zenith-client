@@ -1,12 +1,54 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Building, MapPin, Clock, DollarSign, Send, FileText, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Building, MapPin, Clock, DollarSign, FileText, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CommentComposer } from "@/components/features/job/comment-composer";
+import { CommentThread } from "@/components/features/job/comment-thread";
+
+const discussionThreads = [
+  {
+    root: {
+      initials: "JD",
+      author: "Jane Doe",
+      timestamp: "2 days ago",
+      content: "Does this role require international travel, or is it strictly 100% remote?",
+      actionLabel: "Reply",
+    },
+    replies: [
+      {
+        initials: "HR",
+        author: "Hiring Manager",
+        timestamp: "1 day ago",
+        content:
+          "It is 100% remote. We have one optional team offsite per year, but all daily work is fully distributed.",
+        marker: { variant: "op", label: "OP" },
+      },
+    ],
+  },
+  {
+    root: {
+      initials: "NT",
+      author: "Nguyen Tran",
+      timestamp: "6 hours ago",
+      content: "Is there a formal on-call rotation for this team?",
+      actionLabel: "Reply",
+    },
+    replies: [
+      {
+        initials: "HR",
+        author: "Recruiting Ops",
+        timestamp: "3 hours ago",
+        content: "Yes. It rotates once every six weeks and includes a documented handoff and post-incident review.",
+        marker: { variant: "official", label: "Official" },
+      },
+    ],
+  },
+] as const;
 
 export default function JobDetailsPage() {
   return (
@@ -94,48 +136,19 @@ export default function JobDetailsPage() {
           {/* Comments Section */}
           <section className="mt-16 pt-8 border-t-4 border-primary">
             <h2 className="font-heading text-2xl font-bold text-primary mb-6">Discussion & Q&A</h2>
-            
-            <Card className="border-2 border-border rounded-none shadow-none mb-8">
-              <CardContent className="p-4 flex gap-4">
-                <div className="w-10 h-10 bg-accent flex items-center justify-center font-bold text-primary shrink-0 rounded-none border border-border">You</div>
-                <div className="flex-1 flex flex-col items-end gap-3">
-                  <textarea 
-                    className="w-full border-2 border-border p-3 focus:border-primary focus:outline-none transition-colors rounded-none placeholder:text-muted-foreground"
-                    rows={2}
-                    placeholder="Ask a question about this role..."
-                  ></textarea>
-                  <Button className="rounded-none gap-2 px-6"><Send className="w-4 h-4"/> Post Comment</Button>
-                </div>
-              </CardContent>
-            </Card>
+
+            <div className="mb-8">
+              <CommentComposer placeholder="Ask a question about this role..." />
+            </div>
 
             <div className="space-y-6">
-              {/* Thread 1 */}
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 bg-secondary flex items-center justify-center font-bold text-white shrink-0 rounded-none">JD</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="font-bold text-primary text-lg">Jane Doe</span>
-                      <span className="text-sm text-muted-foreground">2 days ago</span>
-                    </div>
-                    <p className="text-secondary text-lg">Does this role require international travel, or is it strictly 100% remote?</p>
-                    <button className="text-sm font-bold text-cta hover:underline mt-2">Reply</button>
-                  </div>
-                </div>
-                
-                {/* Reply */}
-                <div className="flex gap-4 pl-14">
-                  <div className="w-8 h-8 bg-chart-1 flex items-center justify-center font-bold text-white shrink-0 rounded-none border-2 border-primary">HR</div>
-                  <div className="bg-accent/30 p-4 border border-border flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="font-bold text-primary">Hiring Manager <span className="text-xs bg-primary text-white px-2 py-0.5 ml-2 uppercase">Author</span></span>
-                      <span className="text-sm text-muted-foreground">1 day ago</span>
-                    </div>
-                    <p className="text-secondary">It is 100% remote. We have one optional team offsite per year, but all daily work is fully distributed.</p>
-                  </div>
-                </div>
-              </div>
+              {discussionThreads.map((thread) => (
+                <CommentThread
+                  key={`${thread.root.author}-${thread.root.timestamp}`}
+                  root={thread.root}
+                  replies={thread.replies}
+                />
+              ))}
             </div>
           </section>
         </div>

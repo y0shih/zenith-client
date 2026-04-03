@@ -1,32 +1,28 @@
 // Auth domain types — mirrors the backend auth payloads
+import { UserRole } from './user'
 
-export type UserRole = 'candidate' | 'employer' | 'admin'
+export type { UserRole }
 
 export interface LoginPayload {
   email: string
   password: string
 }
 
-export interface RegisterCandidatePayload {
-  name: string
+export interface RegisterPayload {
   email: string
   password: string
-}
-
-export interface RegisterEmployerPayload {
-  name: string
-  email: string
-  password: string
-  tenantId: string
+  role: 'candidate' | 'employer'
+  full_name: string
+  tenant_id?: string // Required only if role is "employer"
 }
 
 export interface AuthResponse {
-  accessToken: string
-  refreshToken: string
+  access_token: string
+  refresh_token: string
   user: {
     id: string
     email: string
-    name: string
-    role: UserRole
+    full_name: string
+    role: 'candidate' | 'employer' | 'admin'
   }
 }

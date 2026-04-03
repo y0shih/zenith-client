@@ -1,0 +1,116 @@
+import Link from "next/link";
+import { LucideIcon, LogOut } from "lucide-react";
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  active?: boolean;
+};
+
+interface RoleShellProps {
+  roleLabel: string;
+  orgLabel?: string;
+  title: string;
+  subtitle: string;
+  navItems: NavItem[];
+  children: React.ReactNode;
+}
+
+export function RoleShell({
+  roleLabel,
+  orgLabel,
+  title,
+  subtitle,
+  navItems,
+  children,
+}: RoleShellProps) {
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row">
+      <aside className="w-full md:w-72 bg-primary text-white md:min-h-screen flex flex-col border-r-4 border-primary">
+        <div className="p-6 border-b border-white/15">
+          <p className="text-xs uppercase tracking-[0.3em] text-white/70">{roleLabel}</p>
+          <h2 className="font-heading text-2xl font-bold tracking-tight mt-2">Zenith</h2>
+          {orgLabel ? <p className="text-sm text-white/75 mt-1">{orgLabel}</p> : null}
+        </div>
+
+        <nav className="flex-1 p-4 space-y-2">
+          {navItems.map(({ href, label, icon: Icon, active }) => (
+            <Link
+              key={`${href}-${label}`}
+              href={href}
+              className={`flex items-center gap-3 px-4 py-3 border-l-4 transition-colors ${
+                active
+                  ? "bg-white/12 text-white border-cta font-bold"
+                  : "border-transparent text-white/80 hover:text-white hover:bg-white/8"
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span>{label}</span>
+            </Link>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-white/15">
+          <button className="flex w-full items-center gap-3 px-4 py-3 text-white/80 hover:text-white hover:bg-white/8 transition-colors">
+            <LogOut className="w-5 h-5" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      <main className="flex-1 p-6 md:p-12">
+        <header className="mb-10">
+          <h1 className="font-heading text-4xl font-bold text-primary">{title}</h1>
+          <p className="text-secondary text-lg mt-2 max-w-3xl">{subtitle}</p>
+        </header>
+
+        {children}
+      </main>
+    </div>
+  );
+}
+
+export function SectionCard({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-none border-2 border-primary bg-card shadow-[6px_6px_0_0_#0F172A]">
+      <div className="border-b-2 border-border px-6 py-5">
+        <h2 className="font-heading text-2xl font-bold text-primary">{title}</h2>
+        {description ? <p className="text-secondary mt-1">{description}</p> : null}
+      </div>
+      <div className="p-6">{children}</div>
+    </section>
+  );
+}
+
+export function MetricCard({
+  label,
+  value,
+  tone = "primary",
+}: {
+  label: string;
+  value: string;
+  tone?: "primary" | "cta" | "success" | "warning";
+}) {
+  const toneClass = {
+    primary: "border-primary text-primary",
+    cta: "border-cta text-cta",
+    success: "border-chart-2 text-chart-2",
+    warning: "border-chart-3 text-chart-3",
+  }[tone];
+
+  return (
+    <div className={`border-2 ${toneClass} bg-card px-5 py-4`}>
+      <p className="text-xs uppercase tracking-[0.2em] text-secondary">{label}</p>
+      <p className="font-heading text-3xl font-bold mt-3">{value}</p>
+    </div>
+  );
+}

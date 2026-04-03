@@ -1,20 +1,15 @@
 import { api } from './api'
-import { LoginPayload, RegisterCandidatePayload, RegisterEmployerPayload, AuthResponse } from '@/types/auth'
-
-// TODO: Wire up once API is connected. Pass the real token from session/cookie.
+import { LoginPayload, RegisterPayload, AuthResponse } from '@/types/auth'
 
 export const authService = {
   login: (payload: LoginPayload) =>
     api.post<AuthResponse>('/auth/login', payload),
 
-  registerCandidate: (payload: RegisterCandidatePayload) =>
-    api.post<AuthResponse>('/auth/register/candidate', payload),
-
-  registerEmployer: (payload: RegisterEmployerPayload) =>
-    api.post<AuthResponse>('/auth/register/employer', payload),
+  register: (payload: RegisterPayload) =>
+    api.post<AuthResponse>('/auth/register', payload),
 
   refreshToken: (refreshToken: string) =>
-    api.post<AuthResponse>('/auth/refresh', { refreshToken }),
+    api.post<AuthResponse>('/auth/refresh', { refresh_token: refreshToken }),
 
   logout: (token: string) =>
     api.post<void>('/auth/logout', {}, token),

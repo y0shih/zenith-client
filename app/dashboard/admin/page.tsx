@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, Plus, LogOut, Settings, Hash, MoreHorizontal } from "lucide-react";
+import { ShieldCheck, Plus, LogOut, Settings, Hash, MoreHorizontal, Briefcase, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,8 +25,14 @@ export default function AdminDashboard() {
           <Link href="/dashboard/admin" className="flex items-center gap-3 px-4 py-3 bg-cta/20 text-white font-bold border-l-4 border-cta">
             <Hash className="w-5 h-5" /> Tenants
           </Link>
-          <Link href="#" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
-            <Settings className="w-5 h-5" /> Settings
+          <Link href="/dashboard/admin/jobs" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
+            <Briefcase className="w-5 h-5" /> Job Approval
+          </Link>
+          <Link href="/dashboard/admin/moderation" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
+            <Settings className="w-5 h-5" /> Moderation
+          </Link>
+          <Link href="/dashboard/admin/analytics" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
+            <BarChart3 className="w-5 h-5" /> Global Stats
           </Link>
         </nav>
         <div className="p-4 border-t-2 border-white/20">

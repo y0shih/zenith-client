@@ -29,7 +29,7 @@ export default function LandingPage() {
                 </Link>
               </Button>
               <Button asChild variant="secondary" size="lg" className="w-full sm:w-auto text-lg px-8 py-6">
-                <Link href="/auth/register">
+                <Link href="/register">
                   Post a Job
                 </Link>
               </Button>
