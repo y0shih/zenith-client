@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { LucideIcon, LogOut } from "lucide-react";
+import { useSession } from "./session-provider";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-type NavItem = {
+export type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
@@ -25,6 +30,19 @@ export function RoleShell({
   navItems,
   children,
 }: RoleShellProps) {
+  const { clearSession } = useSession();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      await clearSession();
+      toast.success("Signed out successfully");
+      router.replace("/login");
+    } catch {
+      toast.error("Failed to sign out");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row">
       <aside className="w-full md:w-72 bg-primary text-white md:min-h-screen flex flex-col border-r-4 border-primary">
@@ -39,11 +57,10 @@ export function RoleShell({
             <Link
               key={`${href}-${label}`}
               href={href}
-              className={`flex items-center gap-3 px-4 py-3 border-l-4 transition-colors ${
-                active
+              className={`flex items-center gap-3 px-4 py-3 border-l-4 transition-colors ${active
                   ? "bg-white/12 text-white border-cta font-bold"
                   : "border-transparent text-white/80 hover:text-white hover:bg-white/8"
-              }`}
+                }`}
             >
               <Icon className="w-5 h-5" />
               <span>{label}</span>
@@ -52,7 +69,10 @@ export function RoleShell({
         </nav>
 
         <div className="p-4 border-t border-white/15">
-          <button className="flex w-full items-center gap-3 px-4 py-3 text-white/80 hover:text-white hover:bg-white/8 transition-colors">
+          <button 
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-3 px-4 py-3 text-white/80 hover:text-white hover:bg-white/8 transition-colors"
+          >
             <LogOut className="w-5 h-5" />
             <span>Sign Out</span>
           </button>

@@ -1,21 +1,61 @@
 import { api } from './api'
-import { Job, CreateJobPayload, UpdateJobPayload } from '@/types/job'
+import type { PaginationMeta } from '@/types/api'
+import type { CreateJobPayload, Job, UpdateJobPayload } from '@/types/job'
 
-// TODO: Pass real token from session/cookie once API is connected.
+export interface JobListParams {
+  page?: number
+  per_page?: number
+  search?: string
+}
 
 export const jobService = {
-  getAll: (token: string) =>
-    api.get<Job[]>('/jobs', token),
+  listPublic: async (params?: JobListParams) => {
+    const response = await api.get<Job[]>('/jobs', { query: params })
+    return {
+      jobs: response.data,
+      meta: response.meta as PaginationMeta | undefined,
+    }
+  },
 
-  getById: (id: string) =>
-    api.get<Job>(`/jobs/${id}`),
+  getById: (id: string) => api.get<Job>(`/jobs/${id}`).then((response) => response.data),
 
   create: (payload: CreateJobPayload, token: string) =>
-    api.post<Job>('/jobs', payload, token),
+    api.post<Job>('/jobs', payload, { token }).then((response) => response.data),
 
   update: (id: string, payload: UpdateJobPayload, token: string) =>
-    api.patch<Job>(`/jobs/${id}`, payload, token),
+    api.put<Job>(`/jobs/${id}`, payload, { token }).then((response) => response.data),
 
   delete: (id: string, token: string) =>
-    api.delete<void>(`/jobs/${id}`, token),
+    api.delete<void>(`/jobs/${id}`, { token }).then(() => undefined),
+
+  close: (id: string, token: string) =>
+    api.post<void>(`/jobs/${id}/close`, undefined, { token }).then(() => undefined),
+
+  listMyJobs: async (token: string, params?: Omit<JobListParams, 'search'>) => {
+    const response = await api.get<Job[]>('/my-jobs', {
+      token,
+      query: params,
+    })
+    return {
+      jobs: response.data,
+      meta: response.meta as PaginationMeta | undefined,
+    }
+  },
+
+  listPending: async (token: string, params?: Omit<JobListParams, 'search'>) => {
+    const response = await api.get<Job[]>('/jobs/pending', {
+      token,
+      query: params,
+    })
+    return {
+      jobs: response.data,
+      meta: response.meta as PaginationMeta | undefined,
+    }
+  },
+
+  approve: (id: string, token: string) =>
+    api.post<Job>(`/jobs/${id}/approve`, undefined, { token }).then((response) => response.data),
+
+  reject: (id: string, token: string) =>
+    api.post<Job>(`/jobs/${id}/reject`, undefined, { token }).then((response) => response.data),
 }

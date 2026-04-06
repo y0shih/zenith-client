@@ -1,22 +1,21 @@
-import { BarChart3, Bell, Briefcase, MessageSquare, Users } from "lucide-react";
+"use client";
+
+import { usePathname } from "next/navigation";
+import { useSession } from "@/components/layout/session-provider";
+import { getEmployerNavItems, getEmployerRoleLabel } from "@/lib/nav";
+import { shortenId } from "@/lib/display";
 import { MetricCard, RoleShell, SectionCard } from "@/components/layout/role-shell";
 
-const navItems = [
-  { href: "/dashboard/employer", label: "Overview", icon: Briefcase },
-  { href: "/dashboard/employer/applications", label: "Applications", icon: Users },
-  { href: "/dashboard/employer/comments", label: "Comment Moderation", icon: MessageSquare },
-  { href: "/dashboard/employer/notifications", label: "Notifications", icon: Bell },
-  { href: "/dashboard/employer/analytics", label: "Analytics", icon: BarChart3, active: true },
-];
-
 export default function EmployerAnalyticsPage() {
+  const pathname = usePathname();
+  const { user, activeTenantId } = useSession();
   return (
     <RoleShell
-      roleLabel="Employer Tenant"
-      orgLabel="FluxTech"
+      roleLabel={getEmployerRoleLabel(user?.role)}
+      orgLabel={`Organization ${shortenId(activeTenantId ?? "", 8)}`}
       title="Tenant Reporting"
       subtitle="Mockup for the employer-only reporting surface required by the BRD. This keeps analytics tenant-scoped and focused on jobs, applications, and discussion activity."
-      navItems={navItems}
+      navItems={getEmployerNavItems(pathname, user?.role)}
     >
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10">
         <MetricCard label="Approved jobs" value="8" />

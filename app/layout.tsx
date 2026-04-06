@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { Space_Grotesk, DM_Sans } from 'next/font/google'
+import { SessionProvider } from '@/components/layout/session-provider'
 import { ThemeProvider } from '@/components/layout/theme-provider'
 import { AppHeader } from '@/components/layout/app-header'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: '--font-space-grotesk' });
@@ -38,8 +40,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${spaceGrotesk.variable} font-sans antialiased bg-background text-foreground`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <AppHeader />
-          {children}
+          <SessionProvider>
+            <AppHeader />
+            {children}
+            <Toaster richColors position="top-right" />
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,59 +1,205 @@
-"use client";
+'use client'
 
-import Link from "next/link";
-import { ArrowLeft, Building, MapPin, Clock, DollarSign, FileText, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { CommentComposer } from "@/components/features/job/comment-composer";
-import { CommentThread } from "@/components/features/job/comment-thread";
-
-const discussionThreads = [
-  {
-    root: {
-      initials: "JD",
-      author: "Jane Doe",
-      timestamp: "2 days ago",
-      content: "Does this role require international travel, or is it strictly 100% remote?",
-      actionLabel: "Reply",
-    },
-    replies: [
-      {
-        initials: "HR",
-        author: "Hiring Manager",
-        timestamp: "1 day ago",
-        content:
-          "It is 100% remote. We have one optional team offsite per year, but all daily work is fully distributed.",
-        marker: { variant: "op", label: "OP" },
-      },
-    ],
-  },
-  {
-    root: {
-      initials: "NT",
-      author: "Nguyen Tran",
-      timestamp: "6 hours ago",
-      content: "Is there a formal on-call rotation for this team?",
-      actionLabel: "Reply",
-    },
-    replies: [
-      {
-        initials: "HR",
-        author: "Recruiting Ops",
-        timestamp: "3 hours ago",
-        content: "Yes. It rotates once every six weeks and includes a documented handoff and post-incident review.",
-        marker: { variant: "official", label: "Official" },
-      },
-    ],
-  },
-] as const;
+import Link from 'next/link'
+import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { ArrowLeft, Building, Clock, DollarSign, MapPin, MessageSquare } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
+import { useSession } from '@/components/layout/session-provider'
+import { CommentThread } from '@/components/features/job/comment-thread'
+import { canManageTenant } from '@/lib/auth'
+import { formatCurrencyRange, formatEnumLabel, formatRelativeDate, shortenId } from '@/lib/display'
+import { ApiError } from '@/services/api'
+import { applicationService } from '@/services/application.service'
+import { commentService, type JobComment } from '@/services/comment.service'
+import { jobService } from '@/services/job.service'
+import type { Job } from '@/types/job'
+import { toast } from 'sonner'
 
 export default function JobDetailsPage() {
+  const params = useParams<{ id: string }>()
+  const router = useRouter()
+  const { accessToken, activeTenantId, isAuthenticated, user } = useSession()
+  const [job, setJob] = useState<Job | null>(null)
+  const [comments, setComments] = useState<JobComment[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [resumeUrl, setResumeUrl] = useState('')
+  const [coverLetter, setCoverLetter] = useState('')
+  const [commentBody, setCommentBody] = useState('')
+  const [isApplyOpen, setIsApplyOpen] = useState(false)
+  const [isApplying, startApplyTransition] = useTransition()
+  const [isCommenting, startCommentTransition] = useTransition()
+
+  const jobId = params.id
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadPage() {
+      setIsLoading(true)
+      setErrorMessage(null)
+
+      try {
+        const [jobData, commentData] = await Promise.all([
+          jobService.getById(jobId),
+          commentService.listForJob(jobId),
+        ])
+
+        if (!isMounted) {
+          return
+        }
+
+        setJob(jobData)
+        setComments(commentData.comments)
+      } catch (error) {
+        if (!isMounted) {
+          return
+        }
+
+        setErrorMessage(error instanceof Error ? error.message : 'Unable to load this job.')
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadPage()
+
+    return () => {
+      isMounted = false
+    }
+  }, [jobId])
+
+  const commentThreads = useMemo(
+    () =>
+      comments.map((comment) => ({
+        root: {
+          initials: comment.author.full_name
+            .split(' ')
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase() ?? '')
+            .join(''),
+          author: comment.author.full_name,
+          timestamp: formatRelativeDate(comment.created_at),
+          content: comment.content,
+          marker: comment.is_official_reply
+            ? { variant: 'official' as const, label: 'Official' }
+            : comment.author.role === 'system_admin'
+              ? { variant: 'moderator' as const, label: 'Moderator' }
+              : undefined,
+        },
+        replies: comment.replies.map((reply) => ({
+          initials: reply.author.full_name
+            .split(' ')
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase() ?? '')
+            .join(''),
+          author: reply.author.full_name,
+          timestamp: formatRelativeDate(reply.created_at),
+          content: reply.content,
+          marker: reply.is_official_reply
+            ? { variant: 'official' as const, label: 'Official' }
+            : undefined,
+        })),
+      })),
+    [comments],
+  )
+
+  const handleApply = () => {
+    if (!isAuthenticated || !accessToken) {
+      toast.error('Please log in as a candidate before applying.')
+      router.push('/login')
+      return
+    }
+
+    if (user?.role !== 'candidate') {
+      toast.error('Only candidate accounts can apply to jobs.')
+      return
+    }
+
+    startApplyTransition(async () => {
+      try {
+        await applicationService.apply(
+          jobId,
+          {
+            resume_url: resumeUrl || undefined,
+            cover_letter: coverLetter || undefined,
+          },
+          accessToken,
+        )
+
+        toast.success('Application submitted successfully.')
+        setResumeUrl('')
+        setCoverLetter('')
+        setIsApplyOpen(false)
+      } catch (error) {
+        toast.error(error instanceof ApiError ? error.message : 'Unable to submit your application.')
+      }
+    })
+  }
+
+  const handleCommentSubmit = () => {
+    if (!isAuthenticated || !accessToken) {
+      toast.error('Please log in before posting a comment.')
+      router.push('/login')
+      return
+    }
+
+    if (!commentBody.trim()) {
+      toast.error('Comment cannot be empty.')
+      return
+    }
+
+    startCommentTransition(async () => {
+      try {
+        const createdComment = await commentService.create(
+          jobId,
+          { content: commentBody.trim() },
+          accessToken,
+          canManageTenant(user?.role) ? activeTenantId : null,
+        )
+
+        setComments((current) => [createdComment, ...current])
+        setCommentBody('')
+        toast.success('Comment posted.')
+      } catch (error) {
+        toast.error(error instanceof ApiError ? error.message : 'Unable to post your comment.')
+      }
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center gap-3">
+        <Spinner className="size-5" />
+        Loading job details
+      </main>
+    )
+  }
+
+  if (errorMessage || !job) {
+    return (
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center px-6">
+        <div className="max-w-lg text-center space-y-4">
+          <h1 className="font-heading text-3xl font-bold text-primary">Job unavailable</h1>
+          <p className="text-secondary">{errorMessage ?? 'The requested job could not be found.'}</p>
+          <Button asChild>
+            <Link href="/jobs">Back to jobs</Link>
+          </Button>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="min-h-screen bg-background text-foreground pb-24">
-      {/* Header / Breadcrumb */}
       <div className="bg-primary text-white pt-24 pb-8 px-6">
         <div className="max-w-4xl mx-auto">
           <Link href="/jobs" className="inline-flex items-center gap-2 text-cta hover:text-white transition-colors mb-6 font-medium">
@@ -61,16 +207,16 @@ export default function JobDetailsPage() {
           </Link>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
-              <h1 className="font-heading text-4xl md:text-5xl font-bold mb-4">Senior Golang Native Engineer</h1>
+              <h1 className="font-heading text-4xl md:text-5xl font-bold mb-4">{job.title}</h1>
               <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-white/80 font-medium">
-                <span className="flex items-center gap-2"><Building className="w-5 h-5" /> FluxTech</span>
-                <span className="flex items-center gap-2"><MapPin className="w-5 h-5" /> Remote</span>
-                <span className="flex items-center gap-2"><Clock className="w-5 h-5" /> Full-Time</span>
-                <span className="flex items-center gap-2 text-chart-2 font-bold"><DollarSign className="w-5 h-5" /> $120k - $160k</span>
+                <span className="flex items-center gap-2"><Building className="w-5 h-5" /> Tenant {shortenId(job.tenant_id)}</span>
+                <span className="flex items-center gap-2"><MapPin className="w-5 h-5" /> {job.location}</span>
+                <span className="flex items-center gap-2 capitalize"><Clock className="w-5 h-5" /> {formatEnumLabel(job.job_type)}</span>
+                <span className="flex items-center gap-2 text-chart-2 font-bold"><DollarSign className="w-5 h-5" /> {formatCurrencyRange(job.salary_min, job.salary_max)}</span>
               </div>
             </div>
-            
-            <Dialog>
+
+            <Dialog open={isApplyOpen} onOpenChange={setIsApplyOpen}>
               <DialogTrigger asChild>
                 <Button size="lg" className="w-full md:w-auto px-8 !py-6 text-lg border-2 border-transparent hover:border-white">
                   Apply Now
@@ -80,27 +226,36 @@ export default function JobDetailsPage() {
                 <DialogHeader>
                   <DialogTitle className="font-heading text-2xl font-bold text-primary">Apply for this role</DialogTitle>
                   <DialogDescription className="text-base text-secondary">
-                    Submit your application for Senior Golang Native Engineer at FluxTech.
+                    Candidate accounts can submit a resume URL and optional cover letter.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-6 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="resume" className="font-bold text-primary">Resume Link</Label>
-                    <Input id="resume" placeholder="https://your-portfolio.com/resume.pdf" className="border-2 focus-visible:ring-0 focus-visible:border-primary rounded-none" />
+                    <Label htmlFor="resume" className="font-bold text-primary">Resume URL</Label>
+                    <Input
+                      id="resume"
+                      value={resumeUrl}
+                      onChange={(event) => setResumeUrl(event.target.value)}
+                      placeholder="https://your-portfolio.com/resume.pdf"
+                      className="border-2 focus-visible:ring-0 focus-visible:border-primary rounded-none"
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="cover-letter" className="font-bold text-primary">Cover Letter (Optional)</Label>
-                    <textarea 
-                      id="cover-letter" 
-                      rows={4} 
+                    <textarea
+                      id="cover-letter"
+                      rows={4}
+                      value={coverLetter}
+                      onChange={(event) => setCoverLetter(event.target.value)}
                       className="border-2 border-border p-3 focus:border-primary focus:outline-none transition-colors rounded-none placeholder:text-muted-foreground w-full"
                       placeholder="Why are you a great fit for this role?"
-                    ></textarea>
+                    />
                   </div>
+                  <Button type="button" className="w-full text-lg rounded-none !py-6" onClick={handleApply} disabled={isApplying}>
+                    {isApplying ? <Spinner className="size-4" /> : null}
+                    Submit Application
+                  </Button>
                 </div>
-                <DialogFooter>
-                  <Button type="submit" className="w-full text-lg rounded-none !py-6">Submit Application</Button>
-                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
@@ -109,66 +264,70 @@ export default function JobDetailsPage() {
 
       <div className="max-w-4xl mx-auto px-6 mt-12 grid grid-cols-1 md:grid-cols-3 gap-12">
         <div className="md:col-span-2 space-y-8">
-          {/* Job Description */}
           <section>
             <h2 className="font-heading text-2xl font-bold text-primary mb-4 border-b-2 border-border pb-2">About the Role</h2>
             <div className="prose prose-slate max-w-none text-secondary">
-              <p className="text-lg">
-                We are looking for a highly skilled Go developer to join our core infrastructure team. You will be responsible for building high-throughput, low-latency microservices that handle millions of requests per minute.
-              </p>
-              <br/>
-              <strong className="text-primary block mb-2">Key Responsibilities:</strong>
-              <ul className="list-none space-y-2 pl-0">
-                <li className="flex items-start gap-2"><CheckCircle2 className="w-5 h-5 text-chart-2 shrink-0 mt-0.5" /> Design and implement scalable backend services using Go.</li>
-                <li className="flex items-start gap-2"><CheckCircle2 className="w-5 h-5 text-chart-2 shrink-0 mt-0.5" /> Optimize query performance in PostgreSQL and Redis.</li>
-                <li className="flex items-start gap-2"><CheckCircle2 className="w-5 h-5 text-chart-2 shrink-0 mt-0.5" /> Participate in system architecture design and code reviews.</li>
-              </ul>
-              <br/>
-              <strong className="text-primary block mb-2">Requirements:</strong>
-              <ul className="list-none space-y-2 pl-0">
-                <li className="flex items-start gap-2"><CheckCircle2 className="w-5 h-5 text-chart-1 shrink-0 mt-0.5" /> 5+ years of software engineering experience.</li>
-                <li className="flex items-start gap-2"><CheckCircle2 className="w-5 h-5 text-chart-1 shrink-0 mt-0.5" /> Minimum 3 years of production experience with Go.</li>
-                <li className="flex items-start gap-2"><CheckCircle2 className="w-5 h-5 text-chart-1 shrink-0 mt-0.5" /> Deep understanding of concurrency in Go (goroutines, channels).</li>
-              </ul>
+              <p className="text-lg whitespace-pre-line">{job.description}</p>
             </div>
           </section>
 
-          {/* Comments Section */}
           <section className="mt-16 pt-8 border-t-4 border-primary">
-            <h2 className="font-heading text-2xl font-bold text-primary mb-6">Discussion & Q&A</h2>
-
-            <div className="mb-8">
-              <CommentComposer placeholder="Ask a question about this role..." />
+            <div className="flex items-center gap-3 mb-6">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              <h2 className="font-heading text-2xl font-bold text-primary">Discussion and Q&A</h2>
             </div>
 
-            <div className="space-y-6">
-              {discussionThreads.map((thread) => (
-                <CommentThread
-                  key={`${thread.root.author}-${thread.root.timestamp}`}
-                  root={thread.root}
-                  replies={thread.replies}
+            <Card className="border-2 border-border rounded-none shadow-none">
+              <CardContent className="p-4 space-y-4">
+                <Label htmlFor="job-comment" className="font-bold text-primary">Add a comment</Label>
+                <textarea
+                  id="job-comment"
+                  rows={3}
+                  value={commentBody}
+                  onChange={(event) => setCommentBody(event.target.value)}
+                  className="w-full border-2 border-border p-3 focus:border-primary focus:outline-none transition-colors rounded-none placeholder:text-muted-foreground"
+                  placeholder="Ask a question about this role..."
                 />
-              ))}
+                <div className="flex justify-end">
+                  <Button type="button" className="rounded-none gap-2 px-6" onClick={handleCommentSubmit} disabled={isCommenting}>
+                    {isCommenting ? <Spinner className="size-4" /> : null}
+                    Post Comment
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-6 mt-8">
+              {commentThreads.length ? (
+                commentThreads.map((thread) => (
+                  <CommentThread
+                    key={`${thread.root.author}-${thread.root.timestamp}-${thread.root.content}`}
+                    root={thread.root}
+                    replies={thread.replies}
+                  />
+                ))
+              ) : (
+                <p className="text-secondary">No discussion yet. Be the first to ask a question.</p>
+              )}
             </div>
           </section>
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-6">
           <Card className="border-2 border-primary rounded-none shadow-[4px_4px_0_0_#0F172A]">
             <CardContent className="p-6">
-              <h3 className="font-heading text-xl font-bold text-primary mb-4">Company Overview</h3>
-              <p className="text-secondary mb-4">FluxTech is building the next generation of cloud infrastructure for AI workloads.</p>
+              <h3 className="font-heading text-xl font-bold text-primary mb-4">Posting Metadata</h3>
               <div className="space-y-2 text-sm text-secondary font-medium">
-                <p><strong>Founded:</strong> 2021</p>
-                <p><strong>Size:</strong> 50-200 employees</p>
-                <p><strong>Funding:</strong> Series B</p>
+                <p><strong>Status:</strong> <span className="capitalize">{formatEnumLabel(job.status)}</span></p>
+                <p><strong>Posted:</strong> {formatRelativeDate(job.created_at)}</p>
+                <p><strong>Approved:</strong> {job.approved_at ? formatRelativeDate(job.approved_at) : 'Pending review or unavailable'}</p>
+                <p><strong>Tenant:</strong> {job.tenant_id}</p>
+                <p><strong>Employer:</strong> {shortenId(job.employer_id, 12)}</p>
               </div>
-              <Button variant="outline" className="w-full mt-6 rounded-none">View Company Profile</Button>
             </CardContent>
           </Card>
         </div>
       </div>
     </main>
-  );
+  )
 }

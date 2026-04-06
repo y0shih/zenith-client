@@ -1,118 +1,339 @@
-import Link from "next/link";
-import { ShieldCheck, Plus, LogOut, Settings, Hash, MoreHorizontal, Briefcase, BarChart3 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+'use client'
+
+import { useEffect, useMemo, useState, useTransition } from 'react'
+import { BarChart3, Briefcase, Building2, Edit2, Plus, Save, ShieldCheck, User, UserPlus, X } from 'lucide-react'
+import { MetricCard, RoleShell, SectionCard } from '@/components/layout/role-shell'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
+import { useSession } from '@/components/layout/session-provider'
+import { formatRelativeDate, shortenId } from '@/lib/display'
+import { authService } from '@/services/auth.service'
+import { ApiError } from '@/services/api'
+import { tenantService } from '@/services/tenant.service'
+import type { CreateTenantPayload, Tenant } from '@/types/user'
+import { toast } from 'sonner'
+
+const navItems = [
+  { href: '/dashboard/admin', label: 'Tenants', icon: Building2, active: true },
+  { href: '/dashboard/admin/jobs', label: 'Job Approval', icon: Briefcase },
+  { href: '/dashboard/admin/moderation', label: 'Moderation', icon: ShieldCheck },
+  { href: '/dashboard/admin/analytics', label: 'Global Stats', icon: BarChart3 },
+]
+
+const INITIAL_TENANT: CreateTenantPayload = { name: '', slug: '' }
 
 export default function AdminDashboard() {
-  const tenants = [
-    { id: "uuid-flux-123", name: "FluxTech", slug: "fluxtech", users: 4, jobs: 12 },
-    { id: "uuid-vercel-456", name: "Vercel", slug: "vercel", users: 15, jobs: 42 },
-    { id: "uuid-neon-789", name: "Neon", slug: "neon", users: 8, jobs: 3 },
-  ];
+  const { accessToken, isAuthenticated, isHydrated, user } = useSession()
+  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [tenantForm, setTenantForm] = useState<CreateTenantPayload>(INITIAL_TENANT)
+  const [adminForm, setAdminForm] = useState({
+    email: '',
+    password: '',
+    full_name: '',
+    tenant_id: '',
+  })
+  const [editingTenantId, setEditingTenantId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', is_active: true })
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [isSaving, startSaveTransition] = useTransition()
+
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated || !accessToken || user?.role !== 'system_admin') {
+      setIsLoading(false)
+      return
+    }
+
+    const token = accessToken
+
+    let isMounted = true
+
+    async function loadTenants() {
+      setIsLoading(true)
+      setErrorMessage(null)
+
+      try {
+        const response = await tenantService.list(token, { page: 1, per_page: 50 })
+        if (!isMounted) {
+          return
+        }
+
+        setTenants(response.tenants)
+      } catch (error) {
+        if (!isMounted) {
+          return
+        }
+
+        setErrorMessage(error instanceof Error ? error.message : 'Unable to load tenants.')
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadTenants()
+
+    return () => {
+      isMounted = false
+    }
+  }, [accessToken, isAuthenticated, isHydrated, user?.role])
+
+  const metrics = useMemo(() => {
+    const activeTenants = tenants.filter((tenant) => tenant.is_active).length
+    return {
+      total: tenants.length,
+      active: activeTenants,
+      inactive: tenants.length - activeTenants,
+    }
+  }, [tenants])
+
+  const handleCreateTenant = () => {
+    if (!accessToken) return
+
+    startSaveTransition(async () => {
+      try {
+        const nextTenant = await tenantService.create(tenantForm, accessToken)
+        setTenants((current) => [nextTenant, ...current])
+        setTenantForm(INITIAL_TENANT)
+        toast.success('Tenant created.')
+      } catch (error) {
+        toast.error(error instanceof ApiError ? error.message : 'Unable to create tenant.')
+      }
+    })
+  }
+
+  const handleUpdateTenant = (id: string) => {
+    if (!accessToken) return
+
+    startSaveTransition(async () => {
+      try {
+        const updated = await tenantService.update(id, editForm, accessToken)
+        setTenants((current) => current.map((t) => (t.id === id ? updated : t)))
+        setEditingTenantId(null)
+        toast.success('Tenant updated.')
+      } catch (error) {
+        toast.error(error instanceof ApiError ? error.message : 'Unable to update tenant.')
+      }
+    })
+  }
+
+  const handleRegisterAdmin = () => {
+    if (!accessToken) {
+      return
+    }
+
+    if (!adminForm.tenant_id) {
+      toast.error('Please select a tenant for this admin.')
+      return
+    }
+
+    startSaveTransition(async () => {
+      try {
+        await authService.registerAdmin(
+          {
+            ...adminForm,
+            role: 'tenant_admin',
+            tenant_id: adminForm.tenant_id,
+          },
+          accessToken,
+        )
+        setAdminForm({ email: '', password: '', full_name: '', tenant_id: '' })
+        toast.success('Tenant admin account created.')
+      } catch (error) {
+        toast.error(error instanceof ApiError ? error.message : 'Unable to create tenant admin.')
+      }
+    })
+  }
+
+  if (!isHydrated) {
+    return (
+      <main className="min-h-screen flex items-center justify-center gap-3">
+        <Spinner className="size-5" />
+        Loading admin workspace
+      </main>
+    )
+  }
+
+  if (!isAuthenticated || user?.role !== 'system_admin') {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-6">
+        <div className="max-w-lg text-center space-y-4">
+          <h1 className="font-heading text-4xl font-bold text-primary">System admin only</h1>
+          <p className="text-secondary">
+            This dashboard requires a `system_admin` account from the live backend.
+          </p>
+        </div>
+      </main>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row">
-      <aside className="w-full md:w-64 bg-primary text-white border-r-4 border-primary md:border-r-0 md:min-h-screen flex flex-col">
-        <div className="p-6 border-b-2 border-white/20">
-          <h2 className="font-heading text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-chart-4" /> System Admin
-          </h2>
+    <RoleShell
+      roleLabel="System Administrator"
+      title="Tenant Management"
+      subtitle="Live tenant administration against `/tenants` and `/auth/register-admin`."
+      navItems={navItems}
+    >
+      {isLoading ? (
+        <div className="flex items-center gap-3 text-secondary">
+          <Spinner className="size-5" />
+          Loading tenant data
         </div>
-        <nav className="flex-1 p-4 flex flex-col gap-2">
-          <Link href="/dashboard/admin" className="flex items-center gap-3 px-4 py-3 bg-cta/20 text-white font-bold border-l-4 border-cta">
-            <Hash className="w-5 h-5" /> Tenants
-          </Link>
-          <Link href="/dashboard/admin/jobs" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
-            <Briefcase className="w-5 h-5" /> Job Approval
-          </Link>
-          <Link href="/dashboard/admin/moderation" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
-            <Settings className="w-5 h-5" /> Moderation
-          </Link>
-          <Link href="/dashboard/admin/analytics" className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
-            <BarChart3 className="w-5 h-5" /> Global Stats
-          </Link>
-        </nav>
-        <div className="p-4 border-t-2 border-white/20">
-          <button className="flex w-full items-center gap-3 px-4 py-3 hover:bg-destructive/20 text-white/80 hover:text-white font-medium transition-colors border-l-4 border-transparent">
-            <LogOut className="w-5 h-5" /> Sign Out
-          </button>
-        </div>
-      </aside>
-
-      <main className="flex-1 p-6 md:p-12 overflow-y-auto">
-        <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <h1 className="font-heading text-4xl font-bold text-primary">Tenant Management</h1>
-            <p className="text-secondary text-lg mt-2">Create and monitor isolated employer workspaces.</p>
+      ) : errorMessage ? (
+        <div className="text-destructive font-medium">{errorMessage}</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+            <MetricCard label="Total tenants" value={String(metrics.total)} />
+            <MetricCard label="Active" value={String(metrics.active)} tone="success" />
+            <MetricCard label="Inactive" value={String(metrics.inactive)} tone="warning" />
           </div>
-          
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button size="lg" className="rounded-none px-6 !py-6 text-lg gap-2">
-                <Plus className="w-5 h-5" /> Create Tenant
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] border-2 border-primary rounded-none shadow-xl">
-              <DialogHeader>
-                <DialogTitle className="font-heading text-2xl font-bold text-primary">New Employer Tenant</DialogTitle>
-                <DialogDescription className="text-base text-secondary">
-                  Provision a new sandbox for a company to post jobs.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-6 py-4">
-                <div className="grid gap-2">
-                  <Label className="font-bold text-primary">Company Name</Label>
-                  <Input placeholder="e.g. Acme Corp" className="border-2 rounded-none" />
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+            <SectionCard title="Create Tenant" description="Backed by `POST /tenants`.">
+              <div className="grid gap-5">
+                <div className="space-y-2">
+                  <Label htmlFor="tenant-name">Company Name</Label>
+                  <Input id="tenant-name" value={tenantForm.name} onChange={(event) => setTenantForm((current) => ({ ...current, name: event.target.value }))} />
                 </div>
-                <div className="grid gap-2">
-                  <Label className="font-bold text-primary">Tenant Slug</Label>
-                  <Input placeholder="e.g. acme-corp" className="border-2 rounded-none" />
-                  <p className="text-sm font-medium text-muted-foreground">Used for URL isolation and internal reference.</p>
+                <div className="space-y-2">
+                  <Label htmlFor="tenant-slug">Tenant Slug</Label>
+                  <Input id="tenant-slug" value={tenantForm.slug ?? ''} onChange={(event) => setTenantForm((current) => ({ ...current, slug: event.target.value }))} />
+                </div>
+                <div className="flex justify-end">
+                  <Button type="button" className="rounded-none gap-2" onClick={handleCreateTenant} disabled={isSaving}>
+                    {isSaving ? <Spinner className="size-4" /> : <Plus className="w-4 h-4" />}
+                    Provision Tenant
+                  </Button>
                 </div>
               </div>
-              <DialogFooter>
-                <Button type="submit" className="w-full text-lg rounded-none !py-6">Provision Tenant</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </header>
+            </SectionCard>
 
-        <Card className="rounded-none border-2 border-primary shadow-[6px_6px_0_0_#0F172A]">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-accent/20 border-b-2 border-border font-heading font-bold text-primary">
-                  <tr>
-                    <th className="p-4 pl-6">Tenant Name</th>
-                    <th className="p-4">Slug</th>
-                    <th className="p-4">UUID</th>
-                    <th className="p-4">Users</th>
-                    <th className="p-4">Jobs</th>
-                    <th className="p-4 pr-6 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y-2 divide-border">
-                  {tenants.map((t) => (
-                    <tr key={t.id} className="hover:bg-accent/10 transition-colors">
-                      <td className="p-4 pl-6 font-bold text-primary text-lg">{t.name}</td>
-                      <td className="p-4 text-secondary font-medium"><span className="bg-border/50 px-2 py-1 text-sm">{t.slug}</span></td>
-                      <td className="p-4 font-mono text-sm text-muted-foreground">{t.id}</td>
-                      <td className="p-4 font-medium text-secondary">{t.users}</td>
-                      <td className="p-4 font-medium text-secondary">{t.jobs}</td>
-                      <td className="p-4 pr-6 text-right">
-                        <Button variant="ghost" size="icon" className="rounded-none hover:bg-border"><MoreHorizontal className="w-5 h-5 text-primary"/></Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <SectionCard title="Register Tenant Admin" description="Create a `tenant_admin` and link them to an organization.">
+              <div className="grid gap-5">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-tenant">Target Organization</Label>
+                  <select
+                    id="admin-tenant"
+                    value={adminForm.tenant_id}
+                    onChange={(e) => setAdminForm((c) => ({ ...c, tenant_id: e.target.value }))}
+                    className="w-full border-2 border-primary bg-background px-3 py-2 text-sm focus:outline-none focus:ring-0"
+                  >
+                    <option value="">Select a tenant...</option>
+                    {tenants.filter(t => t.is_active).map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.slug})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-full-name">Full Name</Label>
+                  <Input id="admin-full-name" value={adminForm.full_name} onChange={(event) => setAdminForm((current) => ({ ...current, full_name: event.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-email">Email</Label>
+                  <Input id="admin-email" value={adminForm.email} onChange={(event) => setAdminForm((current) => ({ ...current, email: event.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-password">Password</Label>
+                  <Input id="admin-password" type="password" value={adminForm.password} onChange={(event) => setAdminForm((current) => ({ ...current, password: event.target.value }))} />
+                </div>
+                <div className="flex justify-end">
+                  <Button type="button" variant="outline" className="rounded-none gap-2 hover:bg-primary hover:text-white" onClick={handleRegisterAdmin} disabled={isSaving}>
+                    {isSaving ? <Spinner className="size-4" /> : <UserPlus className="w-4 h-4" />}
+                    Create Admin User
+                  </Button>
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+
+          <SectionCard title="Tenant Directory" description="Live results from `GET /tenants`.">
+            <div className="space-y-4">
+              {tenants.length ? (
+                tenants.map((tenant) => (
+                  <div key={tenant.id} className="border-2 border-primary bg-card p-5 shadow-[4px_4px_0_0_#0F172A]">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                      {editingTenantId === tenant.id ? (
+                        <div className="flex-1 grid gap-4 md:grid-cols-[1fr_auto_auto]">
+                          <Input
+                            value={editForm.name}
+                            onChange={(e) => setEditForm((c) => ({ ...c, name: e.target.value }))}
+                            className="bg-background"
+                          />
+                          <div className="flex items-center gap-2 px-3 border-2 border-primary bg-background">
+                            <input
+                              id={`active-${tenant.id}`}
+                              type="checkbox"
+                              checked={editForm.is_active}
+                              onChange={(e) => setEditForm((c) => ({ ...c, is_active: e.target.checked }))}
+                              className="accent-primary size-4"
+                            />
+                            <Label htmlFor={`active-${tenant.id}`} className="text-xs uppercase font-bold">Active</Label>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" className="rounded-none" onClick={() => handleUpdateTenant(tenant.id)} disabled={isSaving}>
+                              <Save className="size-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="rounded-none" onClick={() => setEditingTenantId(null)}>
+                              <X className="size-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex-1">
+                            <p className="text-xs uppercase tracking-[0.2em] text-secondary">{tenant.slug}</p>
+                            <h3 className="font-heading text-xl font-bold text-primary mt-2">{tenant.name}</h3>
+                            <p className="text-sm text-muted-foreground mt-3">
+                              Tenant ID {shortenId(tenant.id, 12)} · created {formatRelativeDate(tenant.created_at)}
+                            </p>
+
+                            {tenant.tenant_admin && (
+                              <div className="mt-4 flex items-center gap-3 border-t border-border pt-4">
+                                <div className="p-2 bg-primary/5 rounded-none border border-primary/20">
+                                  <User className="size-4 text-primary" />
+                                </div>
+                                <div className="text-sm">
+                                  <p className="font-bold text-primary uppercase tracking-wider text-[0.65rem]">Organization Admin</p>
+                                  <p className="font-medium text-foreground">{tenant.tenant_admin.full_name}</p>
+                                  <p className="text-xs text-secondary">{tenant.tenant_admin.email}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className={`text-xs uppercase tracking-[0.2em] px-3 py-2 border-2 font-bold ${tenant.is_active ? 'border-chart-2 text-chart-2' : 'border-chart-3 text-chart-3'}`}>
+                              {tenant.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="hover:bg-primary hover:text-white rounded-none border-2 border-transparent hover:border-primary transition-all"
+                              onClick={() => {
+                                setEditingTenantId(tenant.id)
+                                setEditForm({ name: tenant.name, is_active: tenant.is_active })
+                              }}
+                            >
+                              <Edit2 className="size-4" />
+                            </Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-secondary">No tenants found.</p>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      </main>
-    </div>
-  );
+          </SectionCard>
+        </>
+      )}
+    </RoleShell>
+  )
 }

@@ -1,22 +1,69 @@
 import { api } from './api'
-import {
+import type { PaginationMeta } from '@/types/api'
+import type {
   Application,
   CreateApplicationPayload,
   UpdateApplicationStatusPayload,
 } from '@/types/application'
 
-// TODO: Pass real token from session/cookie once API is connected.
+export interface ApplicationListParams {
+  page?: number
+  per_page?: number
+  status?: string
+}
 
 export const applicationService = {
-  apply: (payload: CreateApplicationPayload, token: string) =>
-    api.post<Application>('/applications', payload, token),
+  apply: (jobId: string, payload: CreateApplicationPayload, token: string) =>
+    api
+      .post<Application>(`/jobs/${jobId}/apply`, payload, { token })
+      .then((response) => response.data),
 
-  getMyApplications: (token: string) =>
-    api.get<Application[]>('/applications/me', token),
+  getMyApplications: async (token: string, params?: Omit<ApplicationListParams, 'status'>) => {
+    const response = await api.get<Application[]>('/my-applications', {
+      token,
+      query: params,
+    })
+    return {
+      applications: response.data,
+      meta: response.meta as PaginationMeta | undefined,
+    }
+  },
 
-  getForJob: (jobId: string, token: string) =>
-    api.get<Application[]>(`/applications/job/${jobId}`, token),
+  getForJob: async (
+    jobId: string,
+    token: string,
+    params?: Omit<ApplicationListParams, 'status'>,
+  ) => {
+    const response = await api.get<Application[]>(`/jobs/${jobId}/applications`, {
+      token,
+      query: params,
+    })
+    return {
+      applications: response.data,
+      meta: response.meta as PaginationMeta | undefined,
+    }
+  },
 
-  updateStatus: (id: string, payload: UpdateApplicationStatusPayload, token: string) =>
-    api.patch<Application>(`/applications/${id}/status`, payload, token),
+  listTenantApplications: async (
+    token: string,
+    params?: ApplicationListParams,
+  ) => {
+    const response = await api.get<Application[]>('/applications', {
+      token,
+      query: params,
+    })
+    return {
+      applications: response.data,
+      meta: response.meta as PaginationMeta | undefined,
+    }
+  },
+
+  updateStatus: (
+    id: string,
+    payload: UpdateApplicationStatusPayload,
+    token: string,
+  ) =>
+    api
+      .put<Application>(`/applications/${id}/status`, payload, { token })
+      .then((response) => response.data),
 }
