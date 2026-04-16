@@ -1,12 +1,19 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { Plus, ShieldCheck, User, UserPlus, X } from 'lucide-react'
+import { Plus, ShieldCheck, User, UserPlus, X, Eye, Info, Phone } from 'lucide-react'
 import { RoleShell, SectionCard } from '@/components/layout/role-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Spinner } from '@/components/ui/spinner'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useSession } from '@/components/layout/session-provider'
 import { shortenId } from '@/lib/display'
 import { authService } from '@/services/auth.service'
@@ -31,6 +38,7 @@ export default function TeamManagementPage() {
     full_name: '',
     password: '',
   })
+  const [selectedEmployer, setSelectedEmployer] = useState<EmployerProfile | null>(null)
 
   useEffect(() => {
     if (!isHydrated || !isAuthenticated || !accessToken || user?.role !== 'tenant_admin' || !activeTenantId) {
@@ -63,6 +71,11 @@ export default function TeamManagementPage() {
 
     if (!form.email || !form.full_name || !form.password) {
       toast.error('Please fill in all fields.')
+      return
+    }
+
+    if (form.password.length < 8) {
+      toast.error('Password must be at least 8 characters.')
       return
     }
 
@@ -127,9 +140,15 @@ export default function TeamManagementPage() {
                       <p className="text-xs text-secondary">{emp.job_title || 'Organization Recruiter'}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] uppercase font-bold text-secondary tracking-widest">Role</p>
-                    <p className="text-xs font-bold text-primary">Employer</p>
+                  <div className="text-right flex items-center gap-4">
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-secondary tracking-widest">Role</p>
+                      <p className="text-xs font-bold text-primary">Employer</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="rounded-none border-primary text-primary hover:bg-primary/10" onClick={() => setSelectedEmployer(emp)}>
+                      <Eye className="size-4 mr-2" />
+                      View
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -172,6 +191,33 @@ export default function TeamManagementPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={!!selectedEmployer} onOpenChange={(open) => !open && setSelectedEmployer(null)}>
+        <DialogContent className="sm:max-w-md border-2 border-primary bg-card rounded-none shadow-[4px_4px_0_0_#0F172A]">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-2xl font-bold flex items-center gap-3">
+              <div className="size-10 bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
+                <User className="size-5 text-primary" />
+              </div>
+              <div className="text-left leading-tight">
+                <p>{(selectedEmployer as any)?.full_name || 'Anonymous'}</p>
+                <p className="text-sm font-normal text-secondary mt-1">{selectedEmployer?.job_title || 'Organization Recruiter'}</p>
+              </div>
+            </DialogTitle>
+            <DialogDescription className="sr-only">Employer profile details</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 mt-2">
+            <div className="grid grid-cols-4 items-start gap-4 text-sm border-b-2 border-primary/10 pb-4">
+              <span className="font-bold uppercase tracking-widest text-[10px] text-secondary col-span-1 flex items-center gap-1.5"><Info className="size-3" /> Bio</span>
+              <span className="col-span-3 text-foreground whitespace-pre-wrap">{selectedEmployer?.bio || 'No bio provided.'}</span>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4 text-sm">
+              <span className="font-bold uppercase tracking-widest text-[10px] text-secondary col-span-1 flex items-center gap-1.5"><Phone className="size-3" /> Phone</span>
+              <span className="col-span-3 text-foreground">{selectedEmployer?.phone || 'Not provided'}</span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </RoleShell>
   )
 }

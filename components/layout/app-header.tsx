@@ -40,7 +40,7 @@ export function AppHeader() {
   const navItems = useMemo(() => {
     const items = [{ href: '/jobs', label: 'Jobs' }]
 
-    if (isAuthenticated) {
+    if (isAuthenticated && user?.role === 'candidate') {
       items.push({ href: '/profile', label: 'Profile' })
     }
 
@@ -127,14 +127,16 @@ export function AppHeader() {
                       <BriefcaseBusiness className="w-4 h-4" />
                       Workspace
                     </Link>
-                    <Link
-                      href="/profile"
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted transition-colors"
-                    >
-                      <UserRound className="w-4 h-4" />
-                      Profile
-                    </Link>
+                    {user.role === 'candidate' && (
+                      <Link
+                        href="/profile"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-muted transition-colors"
+                      >
+                        <UserRound className="w-4 h-4" />
+                        Profile
+                      </Link>
+                    )}
                     <Link
                       href="/settings"
                       onClick={() => setIsUserMenuOpen(false)}

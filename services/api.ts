@@ -117,7 +117,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<A
         : undefined
 
     if (response.status === 401 || response.status === 403) {
-      notifySessionFailure('expired')
+      if (!path.includes('/auth/login') && !path.includes('/auth/register')) {
+        notifySessionFailure('expired')
+      }
     } else if (
       response.status === 400 &&
       (errorPayload?.message?.includes('Tenant context required') ||

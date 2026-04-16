@@ -27,6 +27,29 @@ export interface CandidateProfile {
   updated_at: string
 }
 
+export interface CandidateResume {
+  id: string
+  file_name: string
+  original_name: string
+  file_url: string
+  is_primary: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateResumePayload {
+  file_name: string
+  original_name?: string
+  file_url: string
+  is_primary?: boolean
+}
+
+export interface UpdateResumePayload {
+  file_name: string
+  is_primary: boolean
+}
+
+
 export interface UpdateCandidateProfilePayload {
   headline?: string
   bio?: string

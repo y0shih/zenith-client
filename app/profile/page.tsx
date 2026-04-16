@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { Briefcase, MapPin, Save, UserRound } from 'lucide-react'
+import { Briefcase, FileText, MapPin, Save, UserRound, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,8 +14,11 @@ import { formatEnumLabel, formatRelativeDate } from '@/lib/display'
 import { ApiError } from '@/services/api'
 import { applicationService } from '@/services/application.service'
 import { profileService } from '@/services/profile.service'
+import { mediaService } from '@/services/media.service'
 import type { Application } from '@/types/application'
 import type { CandidateProfile, UpdateCandidateProfilePayload } from '@/types/user'
+import { FileUpload } from '@/components/ui/file-upload'
+import { ResumeLibrary } from '@/components/features/candidate/resume-library'
 import { toast } from 'sonner'
 
 function createEmptyProfile(): CandidateProfile {
@@ -45,6 +48,9 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSaving, startSaveTransition] = useTransition()
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [resumeOriginalName, setResumeOriginalName] = useState<string | null>(null)
+  const [resumeRefreshTrigger, setResumeRefreshTrigger] = useState(0)
 
   useEffect(() => {
     if (!isHydrated || !isAuthenticated || !accessToken || user?.role !== 'candidate') {
@@ -61,7 +67,7 @@ export default function ProfilePage() {
       setErrorMessage(null)
 
       try {
-        const [profileResult, applicationResult] = await Promise.all([
+        const [profileResult, applicationResult, resumesResult] = await Promise.all([
           profileService.getCandidateProfile(token).catch((error) => {
             if (error instanceof ApiError && error.status === 404) {
               return createEmptyProfile()
@@ -69,6 +75,7 @@ export default function ProfilePage() {
             throw error
           }),
           applicationService.getMyApplications(token),
+          profileService.listResumes(token).catch(() => []),
         ])
 
         if (!isMounted) {
@@ -78,6 +85,12 @@ export default function ProfilePage() {
         setProfile(profileResult)
         setSkillsInput(profileResult.skills.join(', '))
         setApplications(applicationResult.applications)
+
+        // Resolve display name from resumes list — survives page refresh
+        if (profileResult.resume_url && resumesResult.length > 0) {
+          const match = resumesResult.find((r) => r.file_url === profileResult.resume_url)
+          if (match) setResumeOriginalName(match.original_name ?? match.file_name)
+        }
       } catch (error) {
         if (!isMounted) {
           return
@@ -120,12 +133,33 @@ export default function ProfilePage() {
 
     startSaveTransition(async () => {
       try {
+        let resumeKey = profile.resume_url
+        if (resumeFile) {
+          try {
+            const uploadRes = await mediaService.upload('media', resumeFile, accessToken)
+            resumeKey = uploadRes.url
+            setResumeOriginalName(uploadRes.original_name)
+            // Register in resume library so the name persists across refreshes
+            await profileService.createResume(
+              {
+                file_name: uploadRes.original_name,
+                original_name: uploadRes.original_name,
+                file_url: uploadRes.url,
+              },
+              accessToken,
+            ).catch(() => { /* non-fatal: library may show duplicate but profile still saves */ })
+          } catch (uploadError) {
+            toast.error('Failed to upload new resume. Please try again.')
+            return
+          }
+        }
+
         const payload: UpdateCandidateProfilePayload = {
           headline: profile.headline || undefined,
           bio: profile.bio || undefined,
           avatar_url: profile.avatar_url || undefined,
           phone: profile.phone || undefined,
-          resume_url: profile.resume_url || undefined,
+          resume_url: resumeKey || undefined,
           portfolio_url: profile.portfolio_url || undefined,
           skills: skillsInput
             .split(',')
@@ -139,6 +173,10 @@ export default function ProfilePage() {
         const nextProfile = await profileService.updateCandidateProfile(payload, accessToken)
         setProfile(nextProfile)
         setSkillsInput(nextProfile.skills.join(', '))
+        setResumeFile(null)
+        // Trigger ResumeLibrary refetch whenever a new CV was uploaded
+        if (resumeFile) setResumeRefreshTrigger((n) => n + 1)
+        // keep resumeOriginalName so the card shows the name until page refresh
 
         if (user) {
           updateUser({
@@ -265,8 +303,41 @@ export default function ProfilePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="resume-url">Resume URL</Label>
-                <Input id="resume-url" value={profile.resume_url ?? ''} onChange={(event) => setProfile((current) => ({ ...current, resume_url: event.target.value }))} />
+                <Label className="font-bold text-primary">Resume (PDF)</Label>
+                {profile.resume_url && !resumeFile && (() => {
+                  const displayName = resumeOriginalName ?? (() => {
+                    try {
+                      const seg = new URL(profile.resume_url!).pathname.split('/').pop() ?? ''
+                      return decodeURIComponent(seg) || 'resume.pdf'
+                    } catch { return 'resume.pdf' }
+                  })()
+                  return (
+                    <div className="flex items-center gap-3 px-4 py-3 border-2 border-border bg-muted/30">
+                      <FileText className="w-5 h-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+                        <p className="text-xs text-secondary">Current CV on file</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => { setProfile((c) => ({ ...c, resume_url: '' })); setResumeOriginalName(null) }}
+                        className="text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                        title="Remove"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )
+                })()}
+                {(!profile.resume_url || resumeFile) && (
+                  <FileUpload
+                    accept=".pdf,application/pdf"
+                    maxSizeMB={5}
+                    value={resumeFile}
+                    onChange={setResumeFile}
+                    disabled={isSaving}
+                  />
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="portfolio-url">Portfolio URL</Label>
@@ -360,6 +431,8 @@ export default function ProfilePage() {
               <p className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {profile.location || 'Location not set'}</p>
             </div>
           </section>
+
+          {accessToken && <ResumeLibrary token={accessToken} refreshTrigger={resumeRefreshTrigger} />}
         </aside>
       </div>
     </main>

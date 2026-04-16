@@ -4,6 +4,7 @@ export interface MediaUploadResponse {
   message: string
   url: string
   key: string
+  original_name: string
 }
 
 export const mediaService = {

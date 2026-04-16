@@ -1,9 +1,12 @@
 import { api } from './api'
 import type {
   CandidateProfile,
+  CandidateResume,
+  CreateResumePayload,
   EmployerProfile,
   UpdateCandidateProfilePayload,
   UpdateEmployerProfilePayload,
+  UpdateResumePayload,
 } from '@/types/user'
 
 export const profileService = {
@@ -47,4 +50,22 @@ export const profileService = {
 
   getCandidateById: (id: string) =>
     api.get<CandidateProfile>(`/candidates/${id}`).then((response) => response.data),
+
+  listResumes: (token: string) =>
+    api
+      .get<CandidateResume[]>('/candidate-profile/me/resumes', { token })
+      .then((response) => response.data ?? []),
+
+  createResume: (payload: CreateResumePayload, token: string) =>
+    api
+      .post<CandidateResume>('/candidate-profile/me/resumes', payload, { token })
+      .then((response) => response.data),
+
+  updateResume: (id: string, payload: UpdateResumePayload, token: string) =>
+    api
+      .put<CandidateResume>(`/candidate-profile/me/resumes/${id}`, payload, { token })
+      .then((response) => response.data),
+
+  deleteResume: (id: string, token: string) =>
+    api.delete<void>(`/candidate-profile/me/resumes/${id}`, { token }).then(() => undefined),
 }

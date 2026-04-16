@@ -630,6 +630,7 @@ Request body:
 Notes:
 
 - both fields are optional in the current DTO
+- **Resume Upload Workflow**: For quick CV uploads, candidates should first upload their file via `POST /media/upload/media` and then pass the resulting `url` as the `resume_url` field here.
 - backend rejects duplicate applications to the same job by the same candidate
 - backend rejects jobs not found or not accepting applications
 
@@ -849,14 +850,19 @@ Response:
 
 ```json
 {
-  "id": "uuid",
-  "user_id": "uuid",
-  "job_title": "HR Manager",
-  "bio": "Optional bio",
-  "avatar_url": "https://example.com/avatar.png",
-  "phone": "123456789",
-  "created_at": "2026-04-03T12:00:00Z",
-  "updated_at": "2026-04-03T12:00:00Z"
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "user_id": "uuid",
+    "full_name": "Jane Doe",
+    "email": "jane@example.com",
+    "job_title": "HR Manager",
+    "bio": "Optional bio",
+    "avatar_url": "https://example.com/avatar.png",
+    "phone": "123456789",
+    "created_at": "2026-04-03T12:00:00Z",
+    "updated_at": "2026-04-03T12:00:00Z"
+  }
 }
 ```
 
@@ -902,6 +908,8 @@ Success response `200`:
     {
       "id": "uuid",
       "user_id": "uuid",
+      "full_name": "Jane Doe",
+      "email": "jane@example.com",
       "job_title": "HR Manager",
       "bio": "Bio content",
       "avatar_url": "https://example.com/avatar.png",
@@ -973,7 +981,7 @@ Validation:
 
 - `headline`: max `255`
 - `avatar_url`: valid URL, max `500`
-- `resume_url`: valid URL, max `500`
+- `resume_url`: valid URL, max `500` (Recommend using `POST /media/upload/media` first to obtain this URL)
 - `portfolio_url`: valid URL, max `500`
 - `experience_years`: `0..50`
 - `location`: max `255`

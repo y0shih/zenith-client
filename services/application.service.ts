@@ -66,4 +66,20 @@ export const applicationService = {
     api
       .put<Application>(`/applications/${id}/status`, payload, { token })
       .then((response) => response.data),
+
+  getResume: async (id: string, token: string): Promise<Blob> => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:9666/api/v1'
+    const response = await fetch(`${baseUrl}/applications/${id}/resume`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+    
+    if (!response.ok) {
+      throw new Error(`Failed to load document: ${response.statusText}`)
+    }
+    
+    return await response.blob()
+  },
 }

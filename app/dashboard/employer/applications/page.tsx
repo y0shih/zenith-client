@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { BarChart3, Bell, Briefcase, MessageSquare, Users } from 'lucide-react'
+import { ChevronDown, FileText, User } from 'lucide-react'
 import { MetricCard, RoleShell, SectionCard } from '@/components/layout/role-shell'
 import { Spinner } from '@/components/ui/spinner'
 import { useSession } from '@/components/layout/session-provider'
@@ -13,6 +13,44 @@ import type { Application, ApplicationStatus } from '@/types/application'
 import { toast } from 'sonner'
 import { usePathname } from 'next/navigation'
 import { getEmployerNavItems, getEmployerRoleLabel } from '@/lib/nav'
+import { SecurePdfViewer } from '@/components/features/job/secure-pdf-viewer'
+
+import { Button } from '@/components/ui/button'
+import { StatusBadge } from '@/components/ui/status-badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+
+const getStatusTone = (status: ApplicationStatus): "neutral" | "info" | "success" | "warning" | "danger" => {
+  switch (status) {
+    case 'submitted': return 'neutral'
+    case 'under_review': return 'warning'
+    case 'shortlisted': return 'info'
+    case 'interview': return 'info'
+    case 'offered': return 'success'
+    case 'rejected': return 'danger'
+    case 'withdrawn': return 'neutral'
+    default: return 'neutral'
+  }
+}
 
 export default function EmployerApplicationsPage() {
   const pathname = usePathname()
@@ -156,38 +194,133 @@ export default function EmployerApplicationsPage() {
             <div className="space-y-4">
               {applications.length ? (
                 applications.map((application) => (
-                  <div key={application.id} className="border-2 border-border p-5 grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-4">
-                    <div>
-                      <h3 className="font-heading text-xl font-bold text-primary">
-                        {application.candidate?.full_name ?? 'Candidate'}
-                      </h3>
-                      <p className="text-secondary mt-1">{application.job_title}</p>
-                      <p className="text-foreground mt-4">
-                        Resume: {application.resume_url ? 'attached' : 'not provided'}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Submitted {formatRelativeDate(application.created_at)}
-                      </p>
+                  <div key={application.id} className="border-2 border-border p-5 grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-4 items-start">
+                    <div className="space-y-4">
+                      <div className="flex flex-col items-start gap-1">
+                        <Sheet>
+                          <SheetTrigger asChild>
+                            <Button variant="link" className="p-0 h-auto font-heading text-xl font-bold text-primary hover:underline">
+                              {application.candidate?.full_name ?? 'Candidate'}
+                            </Button>
+                          </SheetTrigger>
+                          <SheetContent className="overflow-y-auto sm:max-w-md border-l-2 border-border shadow-none">
+                            <SheetHeader className="text-left space-y-1">
+                              <SheetTitle className="font-heading text-2xl font-black text-primary uppercase">
+                                {application.candidate?.full_name ?? 'Candidate'}
+                              </SheetTitle>
+                              <SheetDescription className="text-base text-secondary font-medium">
+                                Position: {application.job_title}
+                              </SheetDescription>
+                            </SheetHeader>
+                            <div className="mt-8 flex flex-col gap-6">
+                              <div className="space-y-2">
+                                <h4 className="font-bold text-primary uppercase tracking-wider text-sm border-b-2 border-border pb-1">
+                                  Contact Information
+                                </h4>
+                                <p className="text-foreground">
+                                  <span className="text-secondary mr-2">Email:</span>
+                                  {application.candidate?.email ?? 'Not provided'}
+                                </p>
+                              </div>
+
+                              <div className="space-y-2">
+                                <h4 className="font-bold text-primary uppercase tracking-wider text-sm border-b-2 border-border pb-1">
+                                  Cover Letter
+                                </h4>
+                                {application.cover_letter ? (
+                                  <div className="bg-muted p-4 border border-border text-foreground text-sm whitespace-pre-wrap">
+                                    {application.cover_letter}
+                                  </div>
+                                ) : (
+                                  <p className="text-muted-foreground italic text-sm">No cover letter provided.</p>
+                                )}
+                              </div>
+
+                              <div className="space-y-2">
+                                <h4 className="font-bold text-primary uppercase tracking-wider text-sm border-b-2 border-border pb-1">
+                                  Application Metadata
+                                </h4>
+                                <ul className="text-sm space-y-2 text-foreground">
+                                  <li>
+                                    <span className="text-secondary mr-2">Submitted:</span>
+                                    {new Date(application.created_at).toLocaleDateString()}
+                                  </li>
+                                  <li>
+                                    <span className="text-secondary mr-2">Last Update:</span>
+                                    {new Date(application.updated_at).toLocaleDateString()}
+                                  </li>
+                                  <li>
+                                    <span className="text-secondary mr-2">Status:</span>
+                                    <StatusBadge tone={getStatusTone(application.status)}>{formatEnumLabel(application.status)}</StatusBadge>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          </SheetContent>
+                        </Sheet>
+                        <p className="text-secondary">{application.job_title}</p>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        {application.resume_url ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="rounded-none border-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all font-bold">
+                                <FileText className="mr-2 size-4" />
+                                View CV
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl h-[85vh] flex flex-col rounded-none border-2 border-primary shadow-xl">
+                              <DialogHeader>
+                                <DialogTitle className="font-heading text-2xl font-bold">Candidate CV</DialogTitle>
+                              </DialogHeader>
+                              <div className="flex-1 min-h-0 relative">
+                                {accessToken && <SecurePdfViewer applicationId={application.id} token={accessToken} />}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <span className="inline-flex items-center gap-2 text-sm text-muted-foreground py-1">
+                            <FileText className="size-4" />
+                            No CV
+                          </span>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Submitted {formatRelativeDate(application.created_at)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-3">
-                      <span className="text-xs uppercase tracking-[0.2em] border-2 border-primary px-3 py-2 text-primary font-bold text-center">
-                        {formatEnumLabel(application.status)}
-                      </span>
-                      <select
-                        className="border-2 border-border bg-white px-3 py-3 text-primary font-medium"
-                        value={application.status}
-                        onChange={(event) => handleStatusChange(application.id, event.target.value as ApplicationStatus)}
-                        disabled={isUpdating}
-                      >
-                        <option value="submitted">submitted</option>
-                        <option value="under_review">under_review</option>
-                        <option value="shortlisted">shortlisted</option>
-                        <option value="interview">interview</option>
-                        <option value="offered">offered</option>
-                        <option value="rejected">rejected</option>
-                      </select>
-                      <div className="border-2 border-border px-3 py-3 text-sm text-secondary">
-                        Tenant {shortenId(application.tenant_id, 8)}
+
+                    <div className="flex flex-col gap-3 lg:items-end">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            disabled={isUpdating}
+                            className="focus:outline-none disabled:opacity-50 transition-opacity flex items-center justify-center lg:justify-end"
+                          >
+                            <StatusBadge tone={getStatusTone(application.status)} className="cursor-pointer hover:bg-opacity-80 py-2 px-3 text-xs w-full lg:w-auto">
+                              {formatEnumLabel(application.status)}
+                              <ChevronDown className="ml-1 inline size-3" />
+                            </StatusBadge>
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[200px] border-2 rounded-none p-0">
+                          {(['submitted', 'under_review', 'shortlisted', 'interview', 'offered', 'rejected', 'withdrawn'] as ApplicationStatus[]).map((status) => (
+                            <DropdownMenuItem
+                              key={status}
+                              onClick={() => handleStatusChange(application.id, status)}
+                              disabled={isUpdating}
+                              className="rounded-none cursor-pointer focus:bg-accent focus:text-accent-foreground font-medium text-sm py-2"
+                            >
+                              {formatEnumLabel(status)}
+                              {application.status === status && <span className="ml-auto flex size-2 rounded-full bg-primary" />}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      <div className="px-3 py-1.5 text-xs text-muted-foreground text-center lg:text-right w-full lg:w-auto">
+                        ID: {shortenId(application.id, 8)}
                       </div>
                     </div>
                   </div>

@@ -18,7 +18,10 @@ import { ApiError } from '@/services/api'
 import { applicationService } from '@/services/application.service'
 import { commentService, type JobComment } from '@/services/comment.service'
 import { jobService } from '@/services/job.service'
+import { mediaService } from '@/services/media.service'
 import type { Job } from '@/types/job'
+import { FileUpload } from '@/components/ui/file-upload'
+import { ResumePicker } from '@/components/features/job/resume-picker'
 import { toast } from 'sonner'
 
 export default function JobDetailsPage() {
@@ -29,7 +32,9 @@ export default function JobDetailsPage() {
   const [comments, setComments] = useState<JobComment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [resumeUrl, setResumeUrl] = useState('')
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [selectedResumeUrl, setSelectedResumeUrl] = useState<string | undefined>(undefined)
+  const [showNewUpload, setShowNewUpload] = useState(false)
   const [coverLetter, setCoverLetter] = useState('')
   const [commentBody, setCommentBody] = useState('')
   const [isApplyOpen, setIsApplyOpen] = useState(false)
@@ -56,7 +61,7 @@ export default function JobDetailsPage() {
         }
 
         setJob(jobData)
-        setComments(commentData.comments)
+        setComments(commentData.comments || [])
       } catch (error) {
         if (!isMounted) {
           return
@@ -79,7 +84,7 @@ export default function JobDetailsPage() {
 
   const commentThreads = useMemo(
     () =>
-      comments.map((comment) => ({
+      (comments || []).map((comment) => ({
         root: {
           initials: comment.author.full_name
             .split(' ')
@@ -95,7 +100,7 @@ export default function JobDetailsPage() {
               ? { variant: 'moderator' as const, label: 'Moderator' }
               : undefined,
         },
-        replies: comment.replies.map((reply) => ({
+        replies: (comment.replies || []).map((reply) => ({
           initials: reply.author.full_name
             .split(' ')
             .slice(0, 2)
@@ -126,17 +131,32 @@ export default function JobDetailsPage() {
 
     startApplyTransition(async () => {
       try {
+        let resumeKey: string | undefined = selectedResumeUrl
+
+        // If user chose to upload a brand-new file, upload it first
+        if (showNewUpload && resumeFile) {
+          try {
+            const uploadRes = await mediaService.upload('media', resumeFile, accessToken)
+            resumeKey = uploadRes.url
+          } catch {
+            toast.error('Failed to upload CV. Please try again.')
+            return
+          }
+        }
+
         await applicationService.apply(
           jobId,
           {
-            resume_url: resumeUrl || undefined,
+            resume_url: resumeKey || undefined,
             cover_letter: coverLetter || undefined,
           },
           accessToken,
         )
 
         toast.success('Application submitted successfully.')
-        setResumeUrl('')
+        setResumeFile(null)
+        setSelectedResumeUrl(undefined)
+        setShowNewUpload(false)
         setCoverLetter('')
         setIsApplyOpen(false)
       } catch (error) {
@@ -163,7 +183,6 @@ export default function JobDetailsPage() {
           jobId,
           { content: commentBody.trim() },
           accessToken,
-          canManageTenant(user?.role) ? activeTenantId : null,
         )
 
         setComments((current) => [createdComment, ...current])
@@ -226,19 +245,37 @@ export default function JobDetailsPage() {
                 <DialogHeader>
                   <DialogTitle className="font-heading text-2xl font-bold text-primary">Apply for this role</DialogTitle>
                   <DialogDescription className="text-base text-secondary">
-                    Candidate accounts can submit a resume URL and optional cover letter.
+                    Candidate accounts can submit a PDF resume and optional cover letter.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-6 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="resume" className="font-bold text-primary">Resume URL</Label>
-                    <Input
-                      id="resume"
-                      value={resumeUrl}
-                      onChange={(event) => setResumeUrl(event.target.value)}
-                      placeholder="https://your-portfolio.com/resume.pdf"
-                      className="border-2 focus-visible:ring-0 focus-visible:border-primary rounded-none"
-                    />
+                    <Label className="font-bold text-primary">Select your CV</Label>
+                    {isAuthenticated && accessToken && user?.role === 'candidate' && !showNewUpload ? (
+                      <ResumePicker
+                        token={accessToken}
+                        selectedUrl={selectedResumeUrl}
+                        onSelect={(resume) => setSelectedResumeUrl(resume?.file_url)}
+                        onUploadNew={() => setShowNewUpload(true)}
+                      />
+                    ) : (
+                      <>
+                        <FileUpload
+                          accept=".pdf,application/pdf"
+                          maxSizeMB={5}
+                          value={resumeFile}
+                          onChange={setResumeFile}
+                          disabled={isApplying}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => { setShowNewUpload(false); setResumeFile(null) }}
+                          className="text-xs text-secondary hover:text-primary transition-colors text-left"
+                        >
+                          ← Back to resume library
+                        </button>
+                      </>
+                    )}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="cover-letter" className="font-bold text-primary">Cover Letter (Optional)</Label>
@@ -316,13 +353,13 @@ export default function JobDetailsPage() {
         <div className="space-y-6">
           <Card className="border-2 border-primary rounded-none shadow-[4px_4px_0_0_#0F172A]">
             <CardContent className="p-6">
-              <h3 className="font-heading text-xl font-bold text-primary mb-4">Posting Metadata</h3>
+              <h3 className="font-heading text-xl font-bold text-primary mb-4">Post Description</h3>
               <div className="space-y-2 text-sm text-secondary font-medium">
                 <p><strong>Status:</strong> <span className="capitalize">{formatEnumLabel(job.status)}</span></p>
                 <p><strong>Posted:</strong> {formatRelativeDate(job.created_at)}</p>
                 <p><strong>Approved:</strong> {job.approved_at ? formatRelativeDate(job.approved_at) : 'Pending review or unavailable'}</p>
-                <p><strong>Tenant:</strong> {job.tenant_id}</p>
-                <p><strong>Employer:</strong> {shortenId(job.employer_id, 12)}</p>
+                <p><strong>Tenant:</strong> {job.tenant_name || 'Organization unavailable'}</p>
+                <p><strong>Employer:</strong> {job.employer_name || 'Anonymous'}</p>
               </div>
             </CardContent>
           </Card>

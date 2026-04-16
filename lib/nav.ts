@@ -15,7 +15,7 @@ export const getEmployerNavItems = (currentPath: string, role?: string): NavItem
   }
 
   items.push(
-    { href: "/dashboard/employer/comments", label: "Comment Moderation", icon: MessageSquare },
+    { href: "/dashboard/employer/moderation", label: "Job Moderation", icon: MessageSquare },
     { href: "/dashboard/employer/notifications", label: "Notifications", icon: Bell },
     { href: "/dashboard/employer/analytics", label: "Analytics", icon: BarChart3 },
   );

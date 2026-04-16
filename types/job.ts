@@ -4,7 +4,9 @@ export type JobStatus = 'pending' | 'approved' | 'rejected' | 'closed'
 export interface Job {
   id: string
   tenant_id: string
+  tenant_name: string
   employer_id: string
+  employer_name: string
   title: string
   description: string
   location: string
