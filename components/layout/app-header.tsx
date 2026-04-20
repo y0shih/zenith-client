@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Bell, BriefcaseBusiness, LogIn, Settings, ShieldCheck, UserRound, UserPlus } from 'lucide-react'
+import { Bell, BriefcaseBusiness, LogIn, Settings, UserRound, UserPlus, ChevronLeft } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import { useSession } from './session-provider'
-import { canManageTenant, getDefaultRouteForRole, getInitials } from '@/lib/auth'
+import { getDefaultRouteForRole, getInitials } from '@/lib/auth'
 
 const AUTH_PATHS = new Set(['/login', '/register'])
 
@@ -44,14 +44,6 @@ export function AppHeader() {
       items.push({ href: '/profile', label: 'Profile' })
     }
 
-    if (canManageTenant(user?.role)) {
-      items.push({ href: '/dashboard/employer', label: 'Employer' })
-    }
-
-    if (user?.role === 'system_admin') {
-      items.push({ href: '/dashboard/admin', label: 'Admin' })
-    }
-
     return items
   }, [isAuthenticated, user?.role])
 
@@ -68,23 +60,37 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-40 bg-card/95 backdrop-blur border-b border-border">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <Link href="/jobs" className="flex items-center gap-2 font-bold text-xl text-primary">
-          <span>Zenith</span>
-        </Link>
-
-        <div className="hidden md:flex items-center gap-6">
-          {navItems.map((item) => (
+        {pathname.startsWith('/dashboard') ? (
+          <div className="flex items-center">
             <Link
-              key={item.href}
-              href={item.href}
-              className={`text-sm transition-colors ${
-                pathname === item.href ? 'text-primary font-semibold' : 'text-foreground hover:text-primary'
-              }`}
+              href="/"
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              {item.label}
+              <ChevronLeft className="w-4 h-4" />
+              Back to main site
             </Link>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <>
+            <Link href="/jobs" className="flex items-center gap-2 font-bold text-xl text-primary">
+              <span>Zenith</span>
+            </Link>
+
+            <div className="hidden md:flex items-center gap-6">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`text-sm transition-colors ${
+                    pathname === item.href ? 'text-primary font-semibold' : 'text-foreground hover:text-primary'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
@@ -191,17 +197,28 @@ export function AppHeader() {
       {isMenuOpen ? (
         <div className="md:hidden border-t border-border bg-card">
           <div className="px-4 py-2 space-y-2">
-            {navItems.map((item) => (
+            {pathname.startsWith('/dashboard') ? (
               <Link
-                key={item.href}
-                href={item.href}
-                className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors"
+                href="/"
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-muted rounded transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                {item.label}
+                <ChevronLeft className="w-4 h-4" />
+                Back to main site
               </Link>
-            ))}
-            {!isAuthenticated ? (
+            ) : (
+              navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))
+            )}
+            {!isAuthenticated && (
               <>
                 <Link
                   href="/login"
@@ -218,16 +235,7 @@ export function AppHeader() {
                   Register
                 </Link>
               </>
-            ) : user?.role === 'system_admin' ? (
-              <Link
-                href="/dashboard/admin"
-                className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <ShieldCheck className="w-4 h-4" />
-                Admin Workspace
-              </Link>
-            ) : null}
+            )}
           </div>
         </div>
       ) : null}

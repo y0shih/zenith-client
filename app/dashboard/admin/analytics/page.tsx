@@ -1,10 +1,10 @@
-import { BarChart3, Briefcase, Building2, ShieldCheck } from "lucide-react";
+"use client";
+
+import { BarChart3, Building2 } from "lucide-react";
 import { MetricCard, RoleShell, SectionCard } from "@/components/layout/role-shell";
 
 const navItems = [
   { href: "/dashboard/admin", label: "Tenants", icon: Building2 },
-  { href: "/dashboard/admin/jobs", label: "Job Approval", icon: Briefcase },
-  { href: "/dashboard/admin/moderation", label: "Moderation", icon: ShieldCheck },
   { href: "/dashboard/admin/analytics", label: "Global Stats", icon: BarChart3, active: true },
 ];
 

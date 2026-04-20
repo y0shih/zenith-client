@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { BarChart3, Briefcase, Building2, Edit2, Plus, Save, ShieldCheck, User, UserPlus, X } from 'lucide-react'
+import { BarChart3, Building2, Edit2, Plus, Save, User, UserPlus, X } from 'lucide-react'
 import { MetricCard, RoleShell, SectionCard } from '@/components/layout/role-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,8 +17,6 @@ import { toast } from 'sonner'
 
 const navItems = [
   { href: '/dashboard/admin', label: 'Tenants', icon: Building2, active: true },
-  { href: '/dashboard/admin/jobs', label: 'Job Approval', icon: Briefcase },
-  { href: '/dashboard/admin/moderation', label: 'Moderation', icon: ShieldCheck },
   { href: '/dashboard/admin/analytics', label: 'Global Stats', icon: BarChart3 },
 ]
 
