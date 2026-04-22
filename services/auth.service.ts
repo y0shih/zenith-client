@@ -18,10 +18,11 @@ export const authService = {
   register: (payload: RegisterPayload) =>
     api.post<RegisteredUserResponse>('/auth/register', payload).then((response) => response.data),
 
-  refreshToken: (refreshToken: string) =>
+  refreshToken: (refreshToken: string, tenantId?: string | null) =>
     api
       .post<RefreshResponseData | LoginResponseData['tokens']>('/auth/refresh', {
         refresh_token: refreshToken,
+        tenant_id: tenantId,
       })
       .then((response) => response.data),
 

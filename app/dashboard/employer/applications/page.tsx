@@ -54,7 +54,7 @@ const getStatusTone = (status: ApplicationStatus): "neutral" | "info" | "success
 
 export default function EmployerApplicationsPage() {
   const pathname = usePathname()
-  const { accessToken, activeTenantId, isAuthenticated, isHydrated, user } = useSession()
+  const { accessToken, activeTenantId, activeTenantName, isAuthenticated, isHydrated, user } = useSession()
   const [applications, setApplications] = useState<Application[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -166,7 +166,7 @@ export default function EmployerApplicationsPage() {
   return (
     <RoleShell
       roleLabel={getEmployerRoleLabel(user?.role)}
-      orgLabel={`Organization ${shortenId(activeTenantId, 8)}`}
+      orgLabel={activeTenantName || `Organization ${shortenId(activeTenantId, 8)}`}
       title="Tenant Application Queue"
       subtitle="Live application status management using `GET /applications` and `PUT /applications/{id}/status`."
       navItems={getEmployerNavItems(pathname, user?.role)}

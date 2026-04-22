@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { Plus, ShieldCheck, User, UserPlus, X, Eye, Info, Phone } from 'lucide-react'
+import { Plus, ShieldCheck, User, UserPlus, X, Eye, Info, Phone, Trash2 } from 'lucide-react'
 import { RoleShell, SectionCard } from '@/components/layout/role-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,7 +28,7 @@ import { getEmployerNavItems, getEmployerRoleLabel } from '@/lib/nav'
 
 export default function TeamManagementPage() {
   const pathname = usePathname()
-  const { accessToken, activeTenantId, isAuthenticated, isHydrated, user } = useSession()
+  const { accessToken, activeTenantId, activeTenantName, isAuthenticated, isHydrated, user } = useSession()
   const [employers, setEmployers] = useState<EmployerProfile[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, startSaveTransition] = useTransition()
@@ -99,6 +99,21 @@ export default function TeamManagementPage() {
     })
   }
 
+  const handleDeleteEmployer = (empId: string) => {
+    if (!accessToken) return
+    if (!window.confirm('Are you sure you want to remove this employer? This action cannot be undone.')) return
+
+    startSaveTransition(async () => {
+      try {
+        await profileService.deleteEmployer(empId, accessToken as string)
+        toast.success('Employer removed successfully.')
+        setEmployers(prev => prev.filter(e => e.user_id !== empId))
+      } catch (error) {
+        toast.error(error instanceof ApiError ? error.message : 'Failed to delete employer.')
+      }
+    })
+  }
+
   if (!isHydrated) return null
 
   if (user?.role !== 'tenant_admin') {
@@ -115,7 +130,7 @@ export default function TeamManagementPage() {
   return (
     <RoleShell
       roleLabel={getEmployerRoleLabel(user?.role)}
-      orgLabel={`Organization ${shortenId(activeTenantId ?? '', 8)}`}
+      orgLabel={activeTenantName || `Organization ${shortenId(activeTenantId ?? '', 8)}`}
       title="Team Management"
       subtitle="Invite and manage employer accounts for your organization."
       navItems={getEmployerNavItems(pathname, user?.role)}
@@ -136,8 +151,9 @@ export default function TeamManagementPage() {
                       <User className="size-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-bold text-primary">{(emp as any).full_name || 'Anonymous'}</p>
+                      <p className="font-bold text-primary">{emp.full_name || 'Anonymous'}</p>
                       <p className="text-xs text-secondary">{emp.job_title || 'Organization Recruiter'}</p>
+                      {emp.email && <p className="text-xs text-primary/70 mt-0.5">{emp.email}</p>}
                     </div>
                   </div>
                   <div className="text-right flex items-center gap-4">
@@ -145,10 +161,16 @@ export default function TeamManagementPage() {
                       <p className="text-[10px] uppercase font-bold text-secondary tracking-widest">Role</p>
                       <p className="text-xs font-bold text-primary">Employer</p>
                     </div>
-                    <Button variant="outline" size="sm" className="rounded-none border-primary text-primary hover:bg-primary/10" onClick={() => setSelectedEmployer(emp)}>
-                      <Eye className="size-4 mr-2" />
-                      View
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="rounded-none border-primary text-primary hover:bg-primary/10" onClick={() => setSelectedEmployer(emp)}>
+                        <Eye className="size-4 mr-2" />
+                        View
+                      </Button>
+                      <Button variant="outline" size="sm" className="rounded-none border-red-500 text-red-500 hover:bg-red-500/10" onClick={() => handleDeleteEmployer(emp.user_id)} disabled={isSaving}>
+                        <Trash2 className="size-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -200,8 +222,9 @@ export default function TeamManagementPage() {
                 <User className="size-5 text-primary" />
               </div>
               <div className="text-left leading-tight">
-                <p>{(selectedEmployer as any)?.full_name || 'Anonymous'}</p>
+                <p>{selectedEmployer?.full_name || 'Anonymous'}</p>
                 <p className="text-sm font-normal text-secondary mt-1">{selectedEmployer?.job_title || 'Organization Recruiter'}</p>
+                {selectedEmployer?.email && <p className="text-sm font-normal text-primary/80 mt-0.5">{selectedEmployer.email}</p>}
               </div>
             </DialogTitle>
             <DialogDescription className="sr-only">Employer profile details</DialogDescription>

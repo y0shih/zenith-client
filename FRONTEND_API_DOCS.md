@@ -65,9 +65,10 @@ Important:
 Current roles used by the backend:
 
 - `system_admin`
-- `tenant_admin`
-- `employer`
+- `tenant_admin` (Tenant-specific)
+- `employer` (Tenant-specific)
 - `candidate`
+- `user` (Standard global role for employers/admins)
 
 Role inheritance:
 
@@ -77,9 +78,9 @@ Role inheritance:
 
 Instead of passing a tenant ID header, Zenith-Go uses a context-aware JWT system:
 
-1.  **Login**: Call `/auth/login`. You receive a base JWT containing your user info but NO `tenant_id`.
+1.  **Login**: Call `/auth/login`. You receive a base JWT containing your user info but NO `tenant_id`. The role claim will be your global role (e.g. `user`, `candidate`, `system_admin`).
 2.  **Fetch Tenants**: Call `/auth/my-tenants` with your base JWT. This returns a list of organizations you belong to.
-3.  **Select Tenant**: Call `/auth/select-tenant` with a `tenant_id` from the previous step. You receive a NEW JWT containing that `tenant_id`.
+3.  **Select Tenant**: Call `/auth/select-tenant` with a `tenant_id` from the previous step. You receive a NEW JWT containing that `tenant_id`. **Crucially, the JWT `role` claim will be dynamically updated to your specific role in that tenant (`tenant_admin` or `employer`).**
 4.  **Authorized Requests**: Use the new context-aware JWT for all subsequent API calls. The backend automatically scopes your requests to that tenant.
 
 If you attempt to access a tenant-scoped resource with a base JWT (or a JWT for the wrong tenant), the backend will return `400 Tenant context required`.
@@ -100,10 +101,11 @@ Backend normalization:
 
 ### User roles
 
-- `employer`
-- `candidate`
-- `tenant_admin`
-- `system_admin`
+- `employer` (Tenant scoped)
+- `candidate` (Global scoped)
+- `tenant_admin` (Tenant scoped)
+- `system_admin` (Global scoped)
+- `user` (Global scoped base identity)
 
 ### Job types
 
@@ -174,8 +176,7 @@ Success response `201`:
     "id": "uuid",
     "email": "employer@example.com",
     "role": "employer",
-    "full_name": "Jane Doe",
-    "tenant_id": "uuid"
+    "full_name": "Jane Doe"
   }
 }
 ```
@@ -212,8 +213,7 @@ Success response `200`:
       "id": "uuid",
       "email": "user@example.com",
       "role": "candidate",
-      "full_name": "John Doe",
-      "tenant_id": null
+      "full_name": "John Doe"
     }
   }
 }
@@ -1012,6 +1012,151 @@ Candidate profile response:
 }
 ```
 
+> [!NOTE]
+> `resume_url` in the profile is automatically synced to the URL of the resume currently marked `is_primary = true` in the candidate's resume library. You can manage resumes via the endpoints below.
+
+### POST `/candidate-profile/me/resumes`
+
+Upload and register a new resume for the authenticated candidate.
+
+Access:
+
+- `candidate` only
+
+Request body:
+
+```json
+{
+  "file_name": "Senior Go Engineer CV.pdf",
+  "file_url": "https://storage.example.com/media/uuid.pdf",
+  "is_primary": true
+}
+```
+
+Validation:
+
+- `file_name`: required, max `255`
+- `file_url`: required, valid URL, max `500`
+- `is_primary`: boolean, defaults to `false`
+
+Notes:
+
+- **Upload workflow**: First upload the file via `POST /media/upload/media`, get back the `url`, then pass it here as `file_url`.
+- If `is_primary: true`, all other resumes for this user are unset, and `candidate_profiles.resume_url` is updated to this URL.
+
+Success response `201`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "file_name": "Senior Go Engineer CV.pdf",
+    "file_url": "https://storage.example.com/media/uuid.pdf",
+    "is_primary": true,
+    "created_at": "2026-04-16T04:00:00Z",
+    "updated_at": "2026-04-16T04:00:00Z"
+  }
+}
+```
+
+### GET `/candidate-profile/me/resumes`
+
+List all resumes uploaded by the authenticated candidate.
+
+Access:
+
+- `candidate` only
+
+Success response `200`:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "file_name": "Senior Go Engineer CV.pdf",
+      "file_url": "https://storage.example.com/media/uuid.pdf",
+      "is_primary": true,
+      "created_at": "2026-04-16T04:00:00Z",
+      "updated_at": "2026-04-16T04:00:00Z"
+    },
+    {
+      "id": "uuid2",
+      "file_name": "Fullstack CV.pdf",
+      "file_url": "https://storage.example.com/media/uuid2.pdf",
+      "is_primary": false,
+      "created_at": "2026-04-15T10:00:00Z",
+      "updated_at": "2026-04-15T10:00:00Z"
+    }
+  ]
+}
+```
+
+Notes:
+
+- Only returns non-deleted resumes, ordered by most recently uploaded first.
+- `is_primary: true` indicates the resume currently synced to the candidate's profile.
+
+### PUT `/candidate-profile/me/resumes/{id}`
+
+Rename a resume or promote it to primary.
+
+Access:
+
+- `candidate` only
+
+Path param:
+
+- `id`: UUID of the resume to update
+
+Request body:
+
+```json
+{
+  "file_name": "Updated CV Name.pdf",
+  "is_primary": true
+}
+```
+
+Validation:
+
+- `file_name`: required, max `255`
+- `is_primary`: boolean
+
+Notes:
+
+- Setting `is_primary: true` will unset all other resumes for this user and sync this resume's URL to `candidate_profiles.resume_url`.
+- Ownership is enforced; only the resume owner can update it.
+
+### DELETE `/candidate-profile/me/resumes/{id}`
+
+Soft delete a resume from the candidate's library.
+
+Access:
+
+- `candidate` only
+
+Path param:
+
+- `id`: UUID of the resume to delete
+
+Notes:
+
+- This is a **soft delete** — the DB record is marked with `deleted_at` but the physical file in MinIO is **not removed**. This preserves the link in any existing active applications.
+- If the deleted resume was the primary resume, `candidate_profiles.resume_url` is automatically cleared.
+
+Success response `200`:
+
+```json
+{
+  "success": true,
+  "data": { "message": "Resume deleted successfully" }
+}
+```
+
+
 ### GET `/candidates`
 
 List public candidates.
@@ -1081,6 +1226,62 @@ Notes:
 - backend generates a UUID filename and keeps the original extension
 - invalid `type` currently falls into generic error handling and may return `500` instead of `400`
 
+## Chat Module
+
+This module enables 1-to-1 tenant-isolated real-time chat scoped strictly to a candidate's application.
+
+### GET `/applications/{id}/messages`
+
+Get chat history for a specific application.
+
+Access:
+
+- authenticated
+- candidate: must own the application
+- employer / tenant_admin: must belong to the tenant that owns the application
+
+Query:
+
+- `page`
+- `per_page`
+
+Returns paginated `MessageResponse[]`. Viewing this endpoint implicitly marks unread messages from the other party as read.
+
+### POST `/applications/{id}/messages`
+
+Send a message in the application chat.
+
+Access:
+
+- authenticated (same access rules as GET)
+
+Request:
+
+```json
+{
+  "content": "Hello, thank you for applying."
+}
+```
+
+Response:
+
+- `201 Created` with the `MessageResponse` payload.
+
+### GET `/applications/{id}/messages/stream`
+
+Connect to the Server-Sent Events (SSE) stream for real-time messages.
+
+Access:
+
+- authenticated (same access rules as GET)
+
+Browser Usage:
+Because the native `EventSource` browser API does not support `Authorization: Bearer <TOKEN>` headers naturally, you should use the `@microsoft/fetch-event-source` npm library, which enables passing the required `Authorization` header under the hood via fetch.
+
+Response:
+
+- Stream of `text/event-stream` containing live `MessageResponse` payloads on new messages.
+
 ## Frontend Integration Notes
 
 Recommended frontend header patterns:
@@ -1091,7 +1292,7 @@ Authorization: Bearer <access_token>
 
 Recommended behavior by role:
 
-- `candidate`: use `/candidate-profile/me`, `/my-applications`, `/jobs/{id}/apply`
+- `candidate`: use `/candidate-profile/me`, `/candidate-profile/me/resumes`, `/my-applications`, `/jobs/{id}/apply`
 - `employer`: use `/employer-profile/me`, `/my-jobs`, `/jobs`, `/jobs/{id}/applications`, `/applications` with tenant-scoped JWT
 - `tenant_admin`: same as employer plus `/jobs/pending`, `/jobs/{id}/approve`, `/jobs/{id}/reject`, and employer management via `/employer-profile` (List/Get/Delete)
 - `system_admin`: use tenant management and `/auth/register-admin`

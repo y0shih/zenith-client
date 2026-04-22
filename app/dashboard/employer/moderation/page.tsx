@@ -17,7 +17,7 @@ import { getEmployerNavItems, getEmployerRoleLabel } from '@/lib/nav'
 
 export default function JobModerationPage() {
   const pathname = usePathname()
-  const { accessToken, activeTenantId, isAuthenticated, isHydrated, user } = useSession()
+  const { accessToken, activeTenantId, activeTenantName, isAuthenticated, isHydrated, user } = useSession()
   const [jobs, setJobs] = useState<Job[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -109,7 +109,7 @@ export default function JobModerationPage() {
   return (
     <RoleShell
       roleLabel={getEmployerRoleLabel(user?.role)}
-      orgLabel={`Organization ${shortenId(activeTenantId ?? '', 8)}`}
+      orgLabel={activeTenantName || `Organization ${shortenId(activeTenantId ?? '', 8)}`}
       title="Job Moderation"
       subtitle="Review, approve, and manage jobs posted by recruiters in your organization."
       navItems={getEmployerNavItems(pathname, user?.role)}

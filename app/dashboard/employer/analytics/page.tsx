@@ -8,11 +8,11 @@ import { MetricCard, RoleShell, SectionCard } from "@/components/layout/role-she
 
 export default function EmployerAnalyticsPage() {
   const pathname = usePathname();
-  const { user, activeTenantId } = useSession();
+  const { user, activeTenantId, activeTenantName } = useSession();
   return (
     <RoleShell
       roleLabel={getEmployerRoleLabel(user?.role)}
-      orgLabel={`Organization ${shortenId(activeTenantId ?? "", 8)}`}
+      orgLabel={activeTenantName || `Organization ${shortenId(activeTenantId ?? "", 8)}`}
       title="Tenant Reporting"
       subtitle="Mockup for the employer-only reporting surface required by the BRD. This keeps analytics tenant-scoped and focused on jobs, applications, and discussion activity."
       navItems={getEmployerNavItems(pathname, user?.role)}

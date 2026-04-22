@@ -54,5 +54,4 @@ export interface RegisteredUserResponse {
   email: string
   role: Extract<UserRole, 'candidate' | 'employer' | 'tenant_admin'>
   full_name: string
-  tenant_id: string | null
 }

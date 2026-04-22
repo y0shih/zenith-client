@@ -261,8 +261,12 @@ export default function ProfilePage() {
           <div className="border-b-2 border-border bg-primary text-white px-8 py-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-white/15 flex items-center justify-center text-xl font-bold">
-                  <UserRound className="w-8 h-8" />
+                <div className="w-16 h-16 rounded-full bg-white/15 flex items-center justify-center text-xl font-bold overflow-hidden border border-white/20">
+                  {profile.avatar_url ? (
+                    <img src={profile.avatar_url} alt={user.full_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <UserRound className="w-8 h-8" />
+                  )}
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.25em] text-white/70">Candidate Workspace</p>
@@ -359,7 +363,7 @@ export default function ProfilePage() {
                   onChange={(event) => setSkillsInput(event.target.value)}
                   placeholder="Go, PostgreSQL, React"
                 />
-                <p className="text-sm text-secondary">Comma-separated. This maps directly to the backend `skills` array.</p>
+                <p className="text-sm text-secondary">List your skills separated by commas (e.g., React, Node.js, Python).</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Availability</Label>
@@ -388,24 +392,31 @@ export default function ProfilePage() {
           <section className="border-2 border-primary bg-card shadow-[6px_6px_0_0_#0F172A]">
             <div className="border-b-2 border-border px-6 py-5">
               <h2 className="font-heading text-2xl font-bold text-primary">Application Progress</h2>
-              <p className="text-secondary mt-1">Live data from `/my-applications`.</p>
             </div>
             <div className="p-6 space-y-4">
               {applications.length ? (
                 applications.map((application) => (
-                  <div key={application.id} className="border border-border p-4">
+                  <div key={application.id} className="border border-border p-4 bg-muted/10">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h3 className="font-semibold text-primary">{application.job_title}</h3>
-                        <p className="text-sm text-secondary mt-1">Tenant {application.tenant_id.slice(0, 8)}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-[10px] uppercase tracking-[0.2em] px-2 py-1 border border-primary text-primary font-bold">
+                            {formatEnumLabel(application.status)}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-[10px] uppercase tracking-[0.2em] px-2 py-1 border border-primary text-primary font-bold">
-                        {formatEnumLabel(application.status)}
-                      </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-3">
-                      Submitted {formatRelativeDate(application.created_at)}
-                    </p>
+                    <div className="flex items-center justify-between mt-4">
+                      <p className="text-sm text-muted-foreground">
+                        Submitted {formatRelativeDate(application.created_at)}
+                      </p>
+                      <Button variant="outline" size="sm" asChild className="rounded-none h-8 text-xs border-primary text-primary hover:bg-primary hover:text-white transition-colors">
+                        <Link href={`/jobs/${application.job_id}`}>
+                          View Job
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 ))
               ) : (

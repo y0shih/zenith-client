@@ -21,6 +21,7 @@ type StoredSession = {
   tokens: AuthTokens
   expires_at: number
   active_tenant_id: string | null
+  active_tenant_name: string | null
 }
 
 type SessionContextValue = {
@@ -31,7 +32,8 @@ type SessionContextValue = {
   accessToken: string | null
   refreshToken: string | null
   activeTenantId: string | null
-  setSession: (payload: LoginResponseData) => void
+  activeTenantName: string | null
+  setSession: (payload: LoginResponseData & { activeTenantId?: string | null; activeTenantName?: string | null }) => void
   updateUser: (user: AuthUser) => void
   setActiveTenantId: (tenantId: string | null) => void
   refreshSession: () => Promise<void>
@@ -85,12 +87,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     user: AuthUser
     tokens: AuthTokens
     activeTenantId?: string | null
+    activeTenantName?: string | null
   }) => {
     const nextSession: StoredSession = {
       user: payload.user,
       tokens: payload.tokens,
       expires_at: computeExpiresAt(payload.tokens),
-      active_tenant_id: payload.activeTenantId ?? payload.user.tenant_id ?? null,
+      active_tenant_id: payload.activeTenantId ?? null,
+      active_tenant_name: payload.activeTenantName ?? null,
     }
 
     setStoredSession(nextSession)
@@ -111,7 +115,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     refreshInFlight.current = (async () => {
       try {
-        const response = await authService.refreshToken(currentSession.tokens.refresh_token)
+        const response = await authService.refreshToken(
+          currentSession.tokens.refresh_token,
+          currentSession.active_tenant_id
+        )
         const data: RefreshResponseData =
           'tokens' in response ? response : { tokens: response, user: currentSession.user }
 
@@ -119,6 +126,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           user: data.user ?? currentSession.user,
           tokens: data.tokens,
           activeTenantId: currentSession.active_tenant_id,
+          activeTenantName: currentSession.active_tenant_name,
         })
       } catch {
         setStoredSession(null)
@@ -165,6 +173,38 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    if (!storedSession?.tokens.access_token || !storedSession.active_tenant_id || storedSession.active_tenant_name) {
+      return
+    }
+
+    let isMounted = true
+
+    async function fetchTenantName() {
+      try {
+        const tenants = await authService.getMyTenants(storedSession?.tokens.access_token)
+        const current = tenants.find((t) => t.id === storedSession?.active_tenant_id)
+        
+        if (current && isMounted) {
+          const nextSession: StoredSession = {
+            ...storedSession!,
+            active_tenant_name: current.name,
+          }
+          setStoredSession(nextSession)
+          writeStoredSession(nextSession)
+        }
+      } catch {
+        // Silently fail, we'll just keep showing the ID
+      }
+    }
+
+    void fetchTenantName()
+
+    return () => {
+      isMounted = false
+    }
+  }, [storedSession?.tokens.access_token, storedSession?.active_tenant_id, storedSession?.active_tenant_name])
+
+  useEffect(() => {
     const unbind = api.onSessionFailure((reason) => {
       setStoredSession(null)
       writeStoredSession(null)
@@ -186,7 +226,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<SessionContextValue>(() => {
     const user = storedSession?.user ?? null
     const tokens = storedSession?.tokens ?? null
-    const activeTenantId = storedSession?.active_tenant_id ?? user?.tenant_id ?? null
+    const activeTenantId = storedSession?.active_tenant_id ?? null
+    const activeTenantName = storedSession?.active_tenant_name ?? null
 
     return {
       isHydrated,
@@ -196,11 +237,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       accessToken: tokens?.access_token ?? null,
       refreshToken: tokens?.refresh_token ?? null,
       activeTenantId,
+      activeTenantName,
       setSession: (payload) => {
         commitSession({
           user: payload.user,
           tokens: payload.tokens,
-          activeTenantId: payload.user.tenant_id,
+          activeTenantId: payload.activeTenantId,
+          activeTenantName: payload.activeTenantName,
         })
       },
       updateUser: (nextUser) => {
@@ -211,7 +254,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         const nextSession: StoredSession = {
           ...storedSession,
           user: nextUser,
-          active_tenant_id: storedSession.active_tenant_id ?? nextUser.tenant_id ?? null,
+          active_tenant_id: storedSession.active_tenant_id,
         }
 
         setStoredSession(nextSession)
@@ -225,6 +268,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         const nextSession: StoredSession = {
           ...storedSession,
           active_tenant_id: tenantId,
+          active_tenant_name: null, // Clear name so it re-fetches for the new tenant
         }
 
         setStoredSession(nextSession)

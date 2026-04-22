@@ -15,11 +15,11 @@ const notifications = [
 
 export default function EmployerNotificationsPage() {
   const pathname = usePathname();
-  const { user, activeTenantId } = useSession();
+  const { user, activeTenantId, activeTenantName } = useSession();
   return (
     <RoleShell
       roleLabel={getEmployerRoleLabel(user?.role)}
-      orgLabel={`Organization ${shortenId(activeTenantId ?? "", 8)}`}
+      orgLabel={activeTenantName || `Organization ${shortenId(activeTenantId ?? "", 8)}`}
       title="Tenant Notification Center"
       subtitle="Mockup for in-app tenant-isolated notifications covering applications, chat, and job discussion updates."
       navItems={getEmployerNavItems(pathname, user?.role)}

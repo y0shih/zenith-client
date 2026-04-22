@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { BarChart3, Bell, Briefcase, MessageSquare, Plus, Users } from 'lucide-react'
+import { BarChart3, Bell, Briefcase, DollarSign, MessageSquare, Plus, Users } from 'lucide-react'
 import Link from 'next/link'
 import { MetricCard, RoleShell, SectionCard } from '@/components/layout/role-shell'
 import { Button } from '@/components/ui/button'
@@ -33,7 +33,7 @@ const INITIAL_JOB_FORM: CreateJobPayload = {
 
 export default function EmployerDashboard() {
   const pathname = usePathname()
-  const { accessToken, activeTenantId, isAuthenticated, isHydrated, user } = useSession()
+  const { accessToken, activeTenantId, activeTenantName, isAuthenticated, isHydrated, user } = useSession()
   const [jobs, setJobs] = useState<Job[]>([])
   const [applications, setApplications] = useState<Application[]>([])
   const [jobForm, setJobForm] = useState<CreateJobPayload>(INITIAL_JOB_FORM)
@@ -102,6 +102,17 @@ export default function EmployerDashboard() {
 
     return { openJobs, pendingJobs, interviewCount, activeApplicants }
   }, [applications, jobs])
+
+  const formatDisplaySalary = (val: number | undefined) => {
+    if (val === undefined || val === 0) return ''
+    return new Intl.NumberFormat('en-US').format(val).replace(/,/g, '.')
+  }
+
+  const handleSalaryChange = (val: string, field: 'salary_min' | 'salary_max') => {
+    const numericValue = parseInt(val.replace(/\D/g, ''), 10) || 0
+    setJobForm((current) => ({ ...current, [field]: numericValue }))
+  }
+
 
   const handleCreateJob = () => {
     if (!accessToken || !activeTenantId) {
@@ -235,7 +246,7 @@ export default function EmployerDashboard() {
   return (
     <RoleShell
       roleLabel={getEmployerRoleLabel(user?.role)}
-      orgLabel={`Organization ${shortenId(activeTenantId, 8)}`}
+      orgLabel={activeTenantName || `Organization ${shortenId(activeTenantId, 8)}`}
       title={user?.role === 'tenant_admin' ? 'Organization Overview' : 'Employer Workspace'}
       subtitle={user?.role === 'tenant_admin' ? 'Manage your team and review job postings.' : 'Create jobs and track applications for this tenant.'}
       navItems={getEmployerNavItems(pathname, user?.role)}
@@ -258,7 +269,7 @@ export default function EmployerDashboard() {
 
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] gap-8">
             {user?.role === 'employer' ? (
-              <SectionCard title="Create Job Posting" description="Posts directly to `POST /jobs` with the active tenant header.">
+              <SectionCard title="Create Job Posting" description="List a new opportunity for potential candidates within your organization.">
                 <div className="grid gap-5">
                   <div className="space-y-2">
                     <Label htmlFor="job-title">Job Title</Label>
@@ -282,11 +293,29 @@ export default function EmployerDashboard() {
                   <div className="grid md:grid-cols-2 gap-5">
                     <div className="space-y-2">
                       <Label htmlFor="salary-min">Salary Min</Label>
-                      <Input id="salary-min" type="number" min={0} value={jobForm.salary_min ?? 0} onChange={(event) => setJobForm((current) => ({ ...current, salary_min: Number(event.target.value) }))} />
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <Input
+                          id="salary-min"
+                          className="pl-8"
+                          placeholder="0"
+                          value={formatDisplaySalary(jobForm.salary_min)}
+                          onChange={(event) => handleSalaryChange(event.target.value, 'salary_min')}
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="salary-max">Salary Max</Label>
-                      <Input id="salary-max" type="number" min={0} value={jobForm.salary_max ?? 0} onChange={(event) => setJobForm((current) => ({ ...current, salary_max: Number(event.target.value) }))} />
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <Input
+                          id="salary-max"
+                          className="pl-8"
+                          placeholder="0"
+                          value={formatDisplaySalary(jobForm.salary_max)}
+                          onChange={(event) => handleSalaryChange(event.target.value, 'salary_max')}
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -326,7 +355,7 @@ export default function EmployerDashboard() {
               </SectionCard>
             )}
 
-            <SectionCard title="Recent Applications" description="Tenant-scoped applications from `GET /applications`.">
+            <SectionCard title="Recent Applications" description="Track and manage the latest candidate submissions for your tenant.">
               <div className="space-y-4">
                 {applications.length ? (
                   applications.slice(0, 6).map((application) => (
@@ -362,7 +391,7 @@ export default function EmployerDashboard() {
           </div>
 
           <div className="mt-8">
-            <SectionCard title={user?.role === 'tenant_admin' ? 'Job Approval Queue' : 'Your Job Postings'} description="Manage lifecycle and review status for organization-wide jobs.">
+            <SectionCard title={user?.role === 'tenant_admin' ? 'Job Approval Queue' : 'Your Job Postings'} description="Review organization job statuses and manage live postings.">
               <div className="space-y-4">
                 {jobs.length ? (
                   jobs.map((job) => (

@@ -187,7 +187,6 @@ export default function JobDetailsPage() {
 
         setComments((current) => [createdComment, ...current])
         setCommentBody('')
-        toast.success('Comment posted.')
       } catch (error) {
         toast.error(error instanceof ApiError ? error.message : 'Unable to post your comment.')
       }

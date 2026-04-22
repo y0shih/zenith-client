@@ -56,7 +56,7 @@ type LoginStep = 'credentials' | 'tenant_selection'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { isAuthenticated, isHydrated, setSession, user } = useSession()
+  const { isAuthenticated, isHydrated, setSession, user, activeTenantId } = useSession()
   
   const [step, setStep] = useState<LoginStep>('credentials')
   const [email, setEmail] = useState('')
@@ -68,10 +68,10 @@ export default function LoginPage() {
   const [tenants, setTenants] = useState<TenantInfo[]>([])
 
   useEffect(() => {
-    if (isHydrated && isAuthenticated && user?.tenant_id) {
+    if (isHydrated && isAuthenticated && (user?.role !== 'user' || activeTenantId)) {
        router.replace(getDefaultRouteForRole(user?.role))
     }
-  }, [isAuthenticated, isHydrated, router, user?.role, user?.tenant_id])
+  }, [isAuthenticated, isHydrated, router, user?.role, activeTenantId])
 
   const handleLoginSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -81,24 +81,19 @@ export default function LoginPage() {
       try {
         const session = await authService.login({ email, password })
         
-        if (session.user.role === 'employer' || session.user.role === 'tenant_admin') {
-          // If tenant_admin already has a tenant_id, they might be automatically scoped 
-          // or at least we should prioritize that specific tenant.
-          const initialTenantId = session.user.tenant_id
+        if (session.user.role === 'user') {
+          // Employers initially receive the 'user' global role and must select an organization
           const userTenants = await authService.getMyTenants(session.tokens.access_token)
           
-          if (userTenants.length === 0 && !initialTenantId) {
+          if (userTenants.length === 0) {
             throw new Error('This account is not associated with any organizations.')
           }
 
           setBaseSession(session)
           setTenants(userTenants)
 
-          // If they have only one tenant OR it's a tenant_admin with an initial assignment
-          const targetTenantId = initialTenantId || (userTenants.length === 1 ? userTenants[0].id : null)
-
-          if (targetTenantId && (userTenants.length <= 1)) {
-            handleTenantSelect(targetTenantId, session.tokens.access_token, session.user)
+          if (userTenants.length === 1) {
+            handleTenantSelect(userTenants[0].id, session.tokens.access_token, session.user)
             return
           }
 
@@ -127,9 +122,19 @@ export default function LoginPage() {
       try {
         const tenantTokens = await authService.selectTenant(tenantId, tokenToUse)
 
-        const userToCommit = { ...userBasis, tenant_id: tenantId }
+        let updatedRole = userBasis.role
+        try {
+          const payload = JSON.parse(atob(tenantTokens.access_token.split('.')[1]))
+          if (payload.role) {
+            updatedRole = payload.role
+          }
+        } catch (e) {
+          console.error('Failed to parse JWT payload', e)
+        }
 
-        setSession({ tokens: tenantTokens, user: userToCommit })
+        const userToCommit = { ...userBasis, role: updatedRole }
+
+        setSession({ tokens: tenantTokens, user: userToCommit, activeTenantId: tenantId })
         toast.success('Organization selected')
         router.push(getDefaultRouteForRole(userToCommit.role))
       } catch (error: any) {

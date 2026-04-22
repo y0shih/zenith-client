@@ -1,4 +1,4 @@
-export type UserRole = 'candidate' | 'employer' | 'tenant_admin' | 'system_admin'
+export type UserRole = 'candidate' | 'employer' | 'tenant_admin' | 'system_admin' | 'user'
 
 export type CandidateProfileStatus = 'looking_for_work' | 'closed'
 
@@ -7,7 +7,6 @@ export interface AuthUser {
   email: string
   full_name: string
   role: UserRole
-  tenant_id: string | null
 }
 
 export interface CandidateProfile {
@@ -72,6 +71,8 @@ export interface EmployerProfile {
   phone: string | null
   created_at: string
   updated_at: string
+  email?: string
+  full_name?: string
 }
 
 export interface UpdateEmployerProfilePayload {

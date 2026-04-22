@@ -49,7 +49,7 @@ export function RoleShell({
         <div className="p-6 border-b border-white/15">
           <p className="text-xs uppercase tracking-[0.3em] text-white/70">{roleLabel}</p>
           <h2 className="font-heading text-2xl font-bold tracking-tight mt-2">Zenith</h2>
-          {orgLabel ? <p className="text-sm text-white/75 mt-1">{orgLabel}</p> : null}
+          {orgLabel ? <p className="text-sm text-white/75 mt-1">Organization: {orgLabel}</p> : null}
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
@@ -58,8 +58,8 @@ export function RoleShell({
               key={`${href}-${label}`}
               href={href}
               className={`flex items-center gap-3 px-4 py-3 border-l-4 transition-colors ${active
-                  ? "bg-white/12 text-white border-cta font-bold"
-                  : "border-transparent text-white/80 hover:text-white hover:bg-white/8"
+                ? "bg-white/12 text-white border-cta font-bold"
+                : "border-transparent text-white/80 hover:text-white hover:bg-white/8"
                 }`}
             >
               <Icon className="w-5 h-5" />
@@ -69,7 +69,7 @@ export function RoleShell({
         </nav>
 
         <div className="p-4 border-t border-white/15">
-          <button 
+          <button
             onClick={handleSignOut}
             className="flex w-full items-center gap-3 px-4 py-3 text-white/80 hover:text-white hover:bg-white/8 transition-colors"
           >
