@@ -3,6 +3,7 @@ import { Space_Grotesk, DM_Sans } from 'next/font/google'
 import { SessionProvider } from '@/components/layout/session-provider'
 import { ThemeProvider } from '@/components/layout/theme-provider'
 import { AppHeader } from '@/components/layout/app-header'
+import { GlobalChat } from '@/components/features/chat/global-chat'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
@@ -43,6 +44,7 @@ export default function RootLayout({
           <SessionProvider>
             <AppHeader />
             {children}
+            <GlobalChat />
             <Toaster richColors position="top-right" />
           </SessionProvider>
         </ThemeProvider>

@@ -16,6 +16,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { formatCurrencyRange, formatEnumLabel, formatRelativeDate, shortenId } from '@/lib/display'
 import { jobService } from '@/services/job.service'
 import type { Job } from '@/types/job'
+import { JobDetailsPane } from '@/components/features/job/job-details-pane'
 
 export default function JobsPage() {
   const [search, setSearch] = useState('')
@@ -25,6 +26,7 @@ export default function JobsPage() {
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
   const deferredSearch = useDeferredValue(search)
 
   useEffect(() => {
@@ -123,7 +125,7 @@ export default function JobsPage() {
       </section>
 
       <section className="px-6 mt-12">
-        <div className="max-w-5xl mx-auto">
+        <div className={`mx-auto transition-all duration-300 ${selectedJobId ? 'max-w-7xl' : 'max-w-5xl'}`}>
           <div className="flex justify-between items-end mb-8 border-b-4 border-primary pb-4 gap-4 flex-wrap">
             <h2 className="text-2xl font-bold font-heading text-primary">
               {isLoading ? 'Loading roles...' : `${visibleJobs.length} of ${total} roles`}
@@ -163,11 +165,12 @@ export default function JobsPage() {
               </EmptyHeader>
             </Empty>
           ) : (
-            <div className="flex flex-col gap-6">
-              {visibleJobs.map((job) => (
-                <Link key={job.id} href={`/jobs/${job.id}`}>
-                  <Card className="group flex flex-col md:flex-row justify-between items-start md:items-center border-2 hover:border-primary transition-all rounded-none cursor-pointer">
-                    <CardHeader className="flex-1 w-full md:w-auto pb-4 md:pb-6">
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
+              <div className={`flex flex-col gap-6 transition-all duration-300 ${selectedJobId ? 'w-full lg:w-[45%]' : 'w-full'}`}>
+                {visibleJobs.map((job) => (
+                  <div key={job.id} onClick={() => setSelectedJobId(job.id)} className="block">
+                    <Card className={`group flex flex-col md:flex-row justify-between items-start md:items-center border-2 hover:border-primary transition-all rounded-none cursor-pointer ${selectedJobId === job.id ? 'border-primary bg-accent/20' : ''}`}>
+                      <CardHeader className="flex-1 w-full md:w-auto pb-4 md:pb-6">
                       <CardTitle className="text-2xl group-hover:text-cta tracking-tight">
                         {job.title}
                       </CardTitle>
@@ -197,8 +200,18 @@ export default function JobsPage() {
                       </Button>
                     </CardContent>
                   </Card>
-                </Link>
-              ))}
+                  </div>
+                ))}
+              </div>
+              
+              {selectedJobId && (
+                <div className="hidden lg:block w-full lg:w-[55%]">
+                  <JobDetailsPane 
+                    jobId={selectedJobId} 
+                    onClose={() => setSelectedJobId(null)} 
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

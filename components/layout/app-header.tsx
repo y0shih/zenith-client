@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Bell, BriefcaseBusiness, LogIn, Settings, UserRound, UserPlus, ChevronLeft } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
+import { NotificationDropdown } from './notification-dropdown'
 import { useSession } from './session-provider'
 import { getDefaultRouteForRole, getInitials } from '@/lib/auth'
 
@@ -40,8 +41,13 @@ export function AppHeader() {
   const navItems = useMemo(() => {
     const items = [{ href: '/jobs', label: 'Jobs' }]
 
-    if (isAuthenticated && user?.role === 'candidate') {
-      items.push({ href: '/profile', label: 'Profile' })
+    if (isAuthenticated) {
+      if (user?.role === 'candidate') {
+        items.push({ href: '/profile', label: 'Profile' })
+        items.push({ href: '/profile/conversations', label: 'Conversations' })
+      } else if (user?.role === 'employer' || user?.role === 'tenant_admin') {
+        items.push({ href: '/dashboard/employer/conversations', label: 'Conversations' })
+      }
     }
 
     return items
@@ -97,13 +103,7 @@ export function AppHeader() {
 
           {isHydrated && isAuthenticated && user ? (
             <>
-              <button
-                className="relative p-2 hover:bg-muted rounded-lg transition-colors cursor-pointer"
-                aria-label="Notifications"
-                type="button"
-              >
-                <Bell className="w-5 h-5" />
-              </button>
+              <NotificationDropdown />
 
               <div className="relative" ref={userMenuRef}>
                 <button

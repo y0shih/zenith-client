@@ -116,7 +116,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<A
         ? (payload.error as ApiErrorPayload)
         : undefined
 
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       if (!path.includes('/auth/login') && !path.includes('/auth/register')) {
         notifySessionFailure('expired')
       }

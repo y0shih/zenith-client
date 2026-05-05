@@ -1247,6 +1247,23 @@ Query:
 
 Returns paginated `MessageResponse[]`. Viewing this endpoint implicitly marks unread messages from the other party as read.
 
+MessageResponse shape:
+
+```json
+{
+  "id": "uuid",
+  "application_id": "uuid",
+  "content": "Message body here",
+  "is_read": false,
+  "created_at": "2026-04-03T12:00:00Z",
+  "sender": {
+    "id": "uuid",
+    "role": "candidate",
+    "full_name": "John Doe"
+  }
+}
+```
+
 ### POST `/applications/{id}/messages`
 
 Send a message in the application chat.
@@ -1255,7 +1272,7 @@ Access:
 
 - authenticated (same access rules as GET)
 
-Request:
+Request body:
 
 ```json
 {
@@ -1263,9 +1280,10 @@ Request:
 }
 ```
 
-Response:
+Validation:
+- `content`: required, min 1, max 2000 characters.
 
-- `201 Created` with the `MessageResponse` payload.
+Success response `201` returns the newly created `MessageResponse`.
 
 ### GET `/applications/{id}/messages/stream`
 
@@ -1280,7 +1298,7 @@ Because the native `EventSource` browser API does not support `Authorization: Be
 
 Response:
 
-- Stream of `text/event-stream` containing live `MessageResponse` payloads on new messages.
+- Stream of `text/event-stream` containing live `MessageResponse` payloads on new messages. Event name is `message`.
 
 ## Frontend Integration Notes
 
