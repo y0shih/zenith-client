@@ -126,7 +126,7 @@ export default function RegisterPage() {
               Join Zenith
             </h1>
             <p className="text-secondary font-medium">
-              Create a candidate or employer account against the live API.
+              Create a candidate or employer account
             </p>
           </motion.div>
 
@@ -135,11 +135,10 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setRole('candidate')}
-                className={`flex items-center justify-center gap-2 py-3 px-4 transition-all duration-300 ${
-                  role === 'candidate'
-                    ? 'bg-card text-primary font-bold border border-border'
-                    : 'text-secondary font-medium hover:text-primary'
-                }`}
+                className={`flex items-center justify-center gap-2 py-3 px-4 transition-all duration-300 ${role === 'candidate'
+                  ? 'bg-card text-primary font-bold border border-border'
+                  : 'text-secondary font-medium hover:text-primary'
+                  }`}
               >
                 <User className="w-4 h-4" />
                 <span className="text-xs uppercase tracking-widest">Candidate</span>
@@ -147,11 +146,10 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setRole('employer')}
-                className={`flex items-center justify-center gap-2 py-3 px-4 transition-all duration-300 ${
-                  role === 'employer'
-                    ? 'bg-card text-primary font-bold border border-border'
-                    : 'text-secondary font-medium hover:text-primary'
-                }`}
+                className={`flex items-center justify-center gap-2 py-3 px-4 transition-all duration-300 ${role === 'employer'
+                  ? 'bg-card text-primary font-bold border border-border'
+                  : 'text-secondary font-medium hover:text-primary'
+                  }`}
               >
                 <Building2 className="w-4 h-4" />
                 <span className="text-xs uppercase tracking-widest">Employer</span>
@@ -208,12 +206,12 @@ export default function RegisterPage() {
                     id="tenant"
                     value={tenantId}
                     onChange={(event) => setTenantId(event.target.value)}
-                    placeholder="Tenant UUID assigned by a system admin"
+                    placeholder="Tenant ID"
                     className="bg-transparent border-0 border-b-2 border-muted rounded-none px-0 py-6 text-lg focus-visible:ring-0 focus-visible:border-cta transition-colors placeholder:text-muted-foreground/30"
                     required={role === 'employer'}
                   />
                   <p className="text-[10px] uppercase font-bold text-secondary/50 tracking-tighter">
-                    Required for employer registration in the current backend.
+                    Contact to your tenant admin for Tenant ID
                   </p>
                 </motion.div>
               ) : null}

@@ -227,7 +227,7 @@ export default function JobDetailsPage() {
             <div>
               <h1 className="font-heading text-4xl md:text-5xl font-bold mb-4">{job.title}</h1>
               <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-white/80 font-medium">
-                <span className="flex items-center gap-2"><Building className="w-5 h-5" /> Tenant {shortenId(job.tenant_id)}</span>
+                <span className="flex items-center gap-2"><Building className="w-5 h-5" /> {job.tenant_name || `Tenant ${shortenId(job.tenant_id)}`}</span>
                 <span className="flex items-center gap-2"><MapPin className="w-5 h-5" /> {job.location}</span>
                 <span className="flex items-center gap-2 capitalize"><Clock className="w-5 h-5" /> {formatEnumLabel(job.job_type)}</span>
                 <span className="flex items-center gap-2 text-chart-2 font-bold"><DollarSign className="w-5 h-5" /> {formatCurrencyRange(job.salary_min, job.salary_max)}</span>

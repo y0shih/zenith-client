@@ -237,7 +237,7 @@ export function JobDetailsPane({ jobId, onClose }: JobDetailsPaneProps) {
         )}
         <h2 className="font-heading text-2xl md:text-3xl font-bold mb-4 pr-8">{job.title}</h2>
         <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-white/80 font-medium text-sm">
-          <span className="flex items-center gap-1.5"><Building className="w-4 h-4" /> {shortenId(job.tenant_id)}</span>
+          <span className="flex items-center gap-1.5"><Building className="w-4 h-4" /> {job.tenant_name || `Tenant ${shortenId(job.tenant_id)}`}</span>
           <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {job.location}</span>
           <span className="flex items-center gap-1.5 capitalize"><Clock className="w-4 h-4" /> {formatEnumLabel(job.job_type)}</span>
           <span className="flex items-center gap-1.5 text-chart-2 font-bold"><DollarSign className="w-4 h-4" /> {formatCurrencyRange(job.salary_min, job.salary_max)}</span>

@@ -176,7 +176,7 @@ export default function JobsPage() {
                       </CardTitle>
                       <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-secondary font-medium mt-4">
                         <span className="flex items-center gap-1.5 bg-accent px-2 py-1 text-sm border border-border">
-                          <Building className="w-4 h-4" /> Tenant {shortenId(job.tenant_id)}
+                          <Building className="w-4 h-4" /> {job.tenant_name || `Tenant ${shortenId(job.tenant_id)}`}
                         </span>
                         <span className="flex items-center gap-1.5 text-sm">
                           <MapPin className="w-4 h-4 text-muted-foreground" /> {job.location}

@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { chatService, type ChatMessage } from '@/services/chat.service'
 import { useSession } from '@/components/layout/session-provider'
-import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { formatRelativeDate } from '@/lib/display'
 import { Button } from '@/components/ui/button'
 
@@ -33,33 +32,54 @@ export function ChatUI({ applicationId }: { applicationId: string }) {
 
     void loadMessages()
 
-    const connectStream = () => {
-      fetchEventSource(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9666/api/v1'}/applications/${applicationId}/messages/stream`, {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${accessToken}` },
-        signal: controller.signal,
-        onmessage(ev) {
-          if (ev.event === 'message') {
-            try {
-              const newMsg = JSON.parse(ev.data) as ChatMessage
-              if (isMounted) {
-                setMessages(prev => {
-                  if (prev.some(m => m.id === newMsg.id)) return prev
-                  return [...prev, newMsg]
-                })
-                scrollToBottom()
-              }
-            } catch (e) { console.error(e) }
+    const connectWebSocket = () => {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9666/api/v1'
+      // Convert http/https to ws/wss
+      const wsUrl = baseUrl.replace(/^http/, 'ws') + `/applications/${applicationId}/messages/ws?token=${accessToken}`
+      
+      const ws = new WebSocket(wsUrl)
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected')
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const newMsg = JSON.parse(event.data) as ChatMessage
+          if (isMounted && newMsg.id) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === newMsg.id)) return prev
+              return [...prev, newMsg]
+            })
+            scrollToBottom()
           }
+        } catch (e) {
+          console.error('WebSocket parse error:', e)
         }
-      })
+      }
+
+      ws.onerror = (err) => {
+        console.error('WebSocket error:', err)
+      }
+
+      ws.onclose = () => {
+        if (isMounted) {
+          console.log('WebSocket closed, reconnecting in 2s...')
+          setTimeout(connectWebSocket, 2000)
+        }
+      }
+
+      return ws
     }
 
-    connectStream()
+    const ws = connectWebSocket()
 
     return () => {
       isMounted = false
       controller.abort()
+      if (ws) {
+        ws.close()
+      }
     }
   }, [applicationId, accessToken])
 
@@ -73,12 +93,19 @@ export function ChatUI({ applicationId }: { applicationId: string }) {
 
   const handleSend = async () => {
     if (!text.trim() || !accessToken) return
+    const content = text.trim()
+    setText('') // Optimistic clear
+    
     try {
-      await chatService.sendMessage(applicationId, text.trim(), accessToken)
-      setText('')
+      const newMsg = await chatService.sendMessage(applicationId, content, accessToken)
+      setMessages(prev => {
+        if (prev.some(m => m.id === newMsg.id)) return prev
+        return [...prev, newMsg]
+      })
       scrollToBottom()
     } catch (e) {
       console.error(e)
+      setText(content) // Revert on failure
     }
   }
 
