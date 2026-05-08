@@ -66,8 +66,9 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-40 bg-card/95 backdrop-blur border-b border-border">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {pathname.startsWith('/dashboard') ? (
-          <div className="flex items-center">
+        {/* Left Section */}
+        <div className="flex-1 flex justify-start">
+          {pathname.startsWith('/dashboard') ? (
             <Link
               href="/"
               className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -75,30 +76,32 @@ export function AppHeader() {
               <ChevronLeft className="w-4 h-4" />
               Back to main site
             </Link>
-          </div>
-        ) : (
-          <>
+          ) : (
             <Link href="/jobs" className="flex items-center gap-2 font-bold text-xl text-primary">
               <span>Zenith</span>
             </Link>
+          )}
+        </div>
 
-            <div className="hidden md:flex items-center gap-6">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`text-sm transition-colors ${
-                    pathname === item.href ? 'text-primary font-semibold' : 'text-foreground hover:text-primary'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          </>
+        {/* Center Section */}
+        {!pathname.startsWith('/dashboard') && (
+          <div className="hidden md:flex items-center justify-center gap-6 shrink-0">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`text-sm transition-colors ${
+                  pathname === item.href ? 'text-primary font-semibold' : 'text-foreground hover:text-primary'
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
         )}
 
-        <div className="flex items-center gap-3">
+        {/* Right Section */}
+        <div className="flex-1 flex items-center justify-end gap-3">
           <ThemeToggle />
 
           {isHydrated && isAuthenticated && user ? (
