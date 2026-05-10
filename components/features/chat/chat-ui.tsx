@@ -6,7 +6,12 @@ import { useSession } from '@/components/layout/session-provider'
 import { formatRelativeDate } from '@/lib/display'
 import { Button } from '@/components/ui/button'
 
-export function ChatUI({ applicationId }: { applicationId: string }) {
+interface ChatUIProps {
+  applicationId: string
+  onNewMessage?: (msg: ChatMessage) => void
+}
+
+export function ChatUI({ applicationId, onNewMessage }: ChatUIProps) {
   const { accessToken, user } = useSession()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [text, setText] = useState('')
@@ -16,13 +21,14 @@ export function ChatUI({ applicationId }: { applicationId: string }) {
     if (!accessToken) return
 
     let isMounted = true
-    const controller = new AbortController()
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let intentionalClose = false
 
     const loadMessages = async () => {
       try {
         const res = await chatService.getMessages(applicationId, accessToken, { per_page: 50 })
         if (isMounted) {
-          setMessages(res.messages || []) // Backend already sorts ASC (oldest first)
+          setMessages(res.messages || [])
           scrollToBottom()
         }
       } catch (e) {
@@ -34,11 +40,10 @@ export function ChatUI({ applicationId }: { applicationId: string }) {
 
     const connectWebSocket = () => {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9666/api/v1'
-      // Convert http/https to ws/wss
       const wsUrl = baseUrl.replace(/^http/, 'ws') + `/applications/${applicationId}/messages/ws?token=${accessToken}`
-      
+
       const ws = new WebSocket(wsUrl)
-      
+
       ws.onopen = () => {
         console.log('WebSocket connected')
       }
@@ -52,20 +57,26 @@ export function ChatUI({ applicationId }: { applicationId: string }) {
               return [...prev, newMsg]
             })
             scrollToBottom()
+            onNewMessage?.(newMsg)
           }
         } catch (e) {
           console.error('WebSocket parse error:', e)
         }
       }
 
-      ws.onerror = (err) => {
-        console.error('WebSocket error:', err)
+      // onerror always fires before onclose on unexpected disconnects.
+      // Only log when it's not an intentional close (unmount / token change).
+      ws.onerror = () => {
+        if (!intentionalClose) {
+          console.warn('WebSocket error — will attempt reconnect')
+        }
       }
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        if (intentionalClose) return
         if (isMounted) {
-          console.log('WebSocket closed, reconnecting in 2s...')
-          setTimeout(connectWebSocket, 2000)
+          console.log(`WebSocket closed (code ${event.code}), reconnecting in 2s...`)
+          reconnectTimer = setTimeout(connectWebSocket, 2000)
         }
       }
 
@@ -76,10 +87,9 @@ export function ChatUI({ applicationId }: { applicationId: string }) {
 
     return () => {
       isMounted = false
-      controller.abort()
-      if (ws) {
-        ws.close()
-      }
+      intentionalClose = true
+      if (reconnectTimer !== null) clearTimeout(reconnectTimer)
+      ws.close()
     }
   }, [applicationId, accessToken])
 

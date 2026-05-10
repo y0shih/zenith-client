@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Bell, BriefcaseBusiness, LogIn, Settings, UserRound, UserPlus, ChevronLeft } from 'lucide-react'
+import { Bell, BriefcaseBusiness, LogIn, Settings, UserRound, UserPlus } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import { NotificationDropdown } from './notification-dropdown'
 import { useSession } from './session-provider'
@@ -68,19 +68,9 @@ export function AppHeader() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Left Section */}
         <div className="flex-1 flex justify-start">
-          {pathname.startsWith('/dashboard') ? (
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Back to main site
-            </Link>
-          ) : (
-            <Link href="/jobs" className="flex items-center gap-2 font-bold text-xl text-primary">
-              <span>Zenith</span>
-            </Link>
-          )}
+          <Link href="/jobs" className="flex items-center gap-2 font-bold text-xl text-primary">
+            <span>Zenith</span>
+          </Link>
         </div>
 
         {/* Center Section */}
@@ -200,27 +190,16 @@ export function AppHeader() {
       {isMenuOpen ? (
         <div className="md:hidden border-t border-border bg-card">
           <div className="px-4 py-2 space-y-2">
-            {pathname.startsWith('/dashboard') ? (
+            {!pathname.startsWith('/dashboard') && navItems.map((item) => (
               <Link
-                href="/"
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-muted rounded transition-colors"
+                key={item.href}
+                href={item.href}
+                className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                <ChevronLeft className="w-4 h-4" />
-                Back to main site
+                {item.label}
               </Link>
-            ) : (
-              navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="block px-3 py-2 text-sm text-foreground hover:bg-muted rounded transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ))
-            )}
+            ))}
             {!isAuthenticated && (
               <>
                 <Link

@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import { RoleShell, SectionCard } from '@/components/layout/role-shell'
+import { SectionCard } from '@/components/layout/role-shell'
 import { Spinner } from '@/components/ui/spinner'
 import { useSession } from '@/components/layout/session-provider'
 import { applicationService } from '@/services/application.service'
@@ -10,7 +10,6 @@ import type { Application } from '@/types/application'
 import { formatRelativeDate } from '@/lib/display'
 import { ChatUI } from '@/components/features/chat/chat-ui'
 import { MessageCircle, Briefcase } from 'lucide-react'
-import { getCandidateNavItems } from '@/lib/nav'
 
 export default function CandidateConversationsPage() {
   const pathname = usePathname()
@@ -20,6 +19,12 @@ export default function CandidateConversationsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   
   const [activeApplicationId, setActiveApplicationId] = useState<string | null>(null)
+  // tracks last-message timestamp per application for list sorting
+  const [lastMessageAt, setLastMessageAt] = useState<Map<string, string>>(() => new Map())
+
+  const handleNewMessage = useCallback((appId: string, msg: { created_at: string }) => {
+    setLastMessageAt(prev => new Map(prev).set(appId, msg.created_at))
+  }, [])
 
   const isCandidate = user?.role === 'candidate'
 
@@ -89,15 +94,18 @@ export default function CandidateConversationsPage() {
   }
 
   const activeApp = applications.find(a => a.id === activeApplicationId)
+  const sortedApplications = [...applications].sort((a, b) => {
+    const ta = lastMessageAt.get(a.id) ?? a.created_at
+    const tb = lastMessageAt.get(b.id) ?? b.created_at
+    return new Date(tb).getTime() - new Date(ta).getTime()
+  })
 
   return (
-    <RoleShell
-      roleLabel="Candidate Workspace"
-      orgLabel={user?.email || 'Candidate'}
-      title="Conversations"
-      subtitle="Chat with employers regarding your job applications."
-      navItems={getCandidateNavItems(pathname)}
-    >
+    <main className="min-h-screen bg-background text-foreground p-6 md:p-12">
+      <header className="mb-10">
+        <h1 className="font-heading text-4xl font-bold text-primary">Conversations</h1>
+        <p className="text-secondary text-lg mt-2 max-w-3xl">Chat with employers regarding your job applications.</p>
+      </header>
       {isLoading ? (
         <div className="flex items-center gap-3 text-secondary">
           <Spinner className="size-5" />
@@ -120,7 +128,7 @@ export default function CandidateConversationsPage() {
               <h2 className="font-heading font-bold text-lg text-primary">Recent Messages</h2>
             </div>
             <div className="overflow-y-auto flex-1">
-              {applications.map((app) => (
+              {sortedApplications.map((app) => (
                 <button
                   key={app.id}
                   onClick={() => setActiveApplicationId(app.id)}
@@ -133,7 +141,7 @@ export default function CandidateConversationsPage() {
                       {app.job_title}
                     </h3>
                     <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                      {formatRelativeDate(app.created_at)}
+                      {formatRelativeDate(lastMessageAt.get(app.id) ?? app.created_at)}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground inline-block px-2 py-1 bg-muted rounded">
@@ -162,7 +170,7 @@ export default function CandidateConversationsPage() {
                   </div>
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <ChatUI applicationId={activeApp.id} />
+                  <ChatUI applicationId={activeApp.id} onNewMessage={(msg) => handleNewMessage(activeApp.id, msg)} />
                 </div>
               </>
             ) : (
@@ -173,6 +181,6 @@ export default function CandidateConversationsPage() {
           </div>
         </div>
       )}
-    </RoleShell>
+    </main>
   )
 }

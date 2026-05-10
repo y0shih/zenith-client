@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { MessageCircle, X, ChevronDown, ChevronUp, User, Briefcase, ArrowLeft, Settings, BellOff, Ban } from 'lucide-react'
 import Link from 'next/link'
 import { useSession } from '@/components/layout/session-provider'
@@ -19,6 +19,11 @@ export function GlobalChat() {
   const [isLoading, setIsLoading] = useState(false)
 
   const isCandidate = user?.role === 'candidate'
+  const [lastMessageAt, setLastMessageAt] = useState<Map<string, string>>(() => new Map())
+
+  const handleNewMessage = useCallback((appId: string, msg: { created_at: string }) => {
+    setLastMessageAt(prev => new Map(prev).set(appId, msg.created_at))
+  }, [])
 
 
 
@@ -52,6 +57,11 @@ export function GlobalChat() {
   }, [isOpen, accessToken])
 
   const activeApp = applications.find(a => a.id === activeAppId)
+  const sortedApplications = [...applications].sort((a, b) => {
+    const ta = lastMessageAt.get(a.id) ?? a.created_at
+    const tb = lastMessageAt.get(b.id) ?? b.created_at
+    return new Date(tb).getTime() - new Date(ta).getTime()
+  })
 
   // Only show floating chat for candidates for now
   if (!isHydrated || !isAuthenticated || !isCandidate) {
@@ -134,7 +144,7 @@ export function GlobalChat() {
                   </Popover>
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <ChatUI applicationId={activeAppId} />
+                  <ChatUI applicationId={activeAppId} onNewMessage={(msg) => handleNewMessage(activeAppId, msg)} />
                 </div>
               </div>
             ) : (
@@ -148,7 +158,7 @@ export function GlobalChat() {
                     No active applications yet.
                   </div>
                 ) : (
-                  applications.map((app) => (
+                  sortedApplications.map((app) => (
                     <button
                       key={app.id}
                       onClick={() => setActiveAppId(app.id)}
@@ -161,7 +171,7 @@ export function GlobalChat() {
                         <div className="flex justify-between items-baseline mb-1">
                           <h4 className="font-bold text-sm text-primary truncate pr-2">{app.job_title}</h4>
                           <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                            {formatRelativeDate(app.created_at)}
+                            {formatRelativeDate(lastMessageAt.get(app.id) ?? app.created_at)}
                           </span>
                         </div>
                         <p className="text-xs font-semibold text-secondary uppercase tracking-wider">

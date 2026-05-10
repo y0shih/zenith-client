@@ -1,10 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LucideIcon, LogOut } from "lucide-react";
-import { useSession } from "./session-provider";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { LucideIcon } from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -30,62 +27,20 @@ export function RoleShell({
   navItems,
   children,
 }: RoleShellProps) {
-  const { clearSession } = useSession();
-  const router = useRouter();
-
-  const handleSignOut = async () => {
-    try {
-      await clearSession();
-      toast.success("Signed out successfully");
-      router.replace("/login");
-    } catch {
-      toast.error("Failed to sign out");
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row">
-      <aside className="w-full md:w-72 bg-primary text-white md:min-h-screen flex flex-col border-r-4 border-primary">
-        <div className="p-6 border-b border-white/15">
-          <p className="text-xs uppercase tracking-[0.3em] text-white/70">{roleLabel}</p>
-          <h2 className="font-heading text-2xl font-bold tracking-tight mt-2">Zenith</h2>
-          {orgLabel ? <p className="text-sm text-white/75 mt-1">Organization: {orgLabel}</p> : null}
-        </div>
-
-        <nav className="flex-1 p-4 space-y-2">
-          {navItems.map(({ href, label, icon: Icon, active }) => (
-            <Link
-              key={`${href}-${label}`}
-              href={href}
-              className={`flex items-center gap-3 px-4 py-3 border-l-4 transition-colors ${active
-                ? "bg-white/12 text-white border-cta font-bold"
-                : "border-transparent text-white/80 hover:text-white hover:bg-white/8"
-                }`}
-            >
-              <Icon className="w-5 h-5" />
-              <span>{label}</span>
-            </Link>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-white/15">
-          <button
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-3 px-4 py-3 text-white/80 hover:text-white hover:bg-white/8 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Sign Out</span>
-          </button>
-        </div>
-      </aside>
-
-      <main className="flex-1 p-6 md:p-12">
+    <div className="flex flex-col bg-background text-foreground h-full min-h-0">
+      <main className="flex-1 w-full flex flex-col">
         <header className="mb-10">
+          <p className="text-xs uppercase tracking-[0.3em] text-primary mb-2 font-semibold">
+            {roleLabel} {orgLabel ? `— ${orgLabel}` : ""}
+          </p>
           <h1 className="font-heading text-4xl font-bold text-primary">{title}</h1>
           <p className="text-secondary text-lg mt-2 max-w-3xl">{subtitle}</p>
         </header>
 
-        {children}
+        <div className="flex-1 min-h-0">
+          {children}
+        </div>
       </main>
     </div>
   );

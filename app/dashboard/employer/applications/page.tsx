@@ -168,7 +168,7 @@ export default function EmployerApplicationsPage() {
       roleLabel={getEmployerRoleLabel(user?.role)}
       orgLabel={activeTenantName || `Organization ${shortenId(activeTenantId, 8)}`}
       title="Tenant Application Queue"
-      subtitle="Live application status management using `GET /applications` and `PUT /applications/{id}/status`."
+      subtitle="Managing your application queue"
       navItems={getEmployerNavItems(pathname, user?.role)}
     >
       {isLoading ? (
