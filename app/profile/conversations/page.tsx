@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { SectionCard } from '@/components/layout/role-shell'
 import { Spinner } from '@/components/ui/spinner'
 import { useSession } from '@/components/layout/session-provider'
 import { applicationService } from '@/services/application.service'
 import type { Application } from '@/types/application'
-import { formatRelativeDate } from '@/lib/display'
+import { formatEnumLabel, formatRelativeDate } from '@/lib/display'
 import { ChatUI } from '@/components/features/chat/chat-ui'
 import { MessageCircle, Briefcase } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function CandidateConversationsPage() {
   const pathname = usePathname()
@@ -19,12 +20,18 @@ export default function CandidateConversationsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   
   const [activeApplicationId, setActiveApplicationId] = useState<string | null>(null)
+  const activeApplicationIdRef = useRef<string | null>(null)
   // tracks last-message timestamp per application for list sorting
   const [lastMessageAt, setLastMessageAt] = useState<Map<string, string>>(() => new Map())
+  const statusSnapshotRef = useRef<Map<string, string>>(new Map())
 
   const handleNewMessage = useCallback((appId: string, msg: { created_at: string }) => {
     setLastMessageAt(prev => new Map(prev).set(appId, msg.created_at))
   }, [])
+
+  useEffect(() => {
+    activeApplicationIdRef.current = activeApplicationId
+  }, [activeApplicationId])
 
   const isCandidate = user?.role === 'candidate'
 
@@ -35,8 +42,9 @@ export default function CandidateConversationsPage() {
     }
 
     let isMounted = true
+    let refreshTimer: ReturnType<typeof setInterval> | null = null
 
-    async function loadApplications() {
+    async function loadApplications(notifyOnChanges = false) {
       setIsLoading(true)
       setErrorMessage(null)
 
@@ -48,9 +56,26 @@ export default function CandidateConversationsPage() {
 
         if (!isMounted) return
 
+        const previousStatuses = statusSnapshotRef.current
+
+        if (notifyOnChanges) {
+          response.applications.forEach((application) => {
+            const previousStatus = previousStatuses.get(application.id)
+            if (previousStatus && previousStatus !== application.status) {
+              toast.info('Application status updated', {
+                description: `${application.job_title} is now ${formatEnumLabel(application.status)}.`,
+              })
+            }
+          })
+        }
+
+        statusSnapshotRef.current = new Map(
+          response.applications.map((application) => [application.id, application.status]),
+        )
+
         setApplications(response.applications)
         
-        if (response.applications.length > 0 && !activeApplicationId) {
+        if (response.applications.length > 0 && !activeApplicationIdRef.current) {
           setActiveApplicationId(response.applications[0].id)
         }
       } catch (error) {
@@ -66,8 +91,15 @@ export default function CandidateConversationsPage() {
 
     void loadApplications()
 
+    refreshTimer = setInterval(() => {
+      void loadApplications(true)
+    }, 30000)
+
     return () => {
       isMounted = false
+      if (refreshTimer) {
+        clearInterval(refreshTimer)
+      }
     }
   }, [accessToken, isAuthenticated, isHydrated, isCandidate])
 

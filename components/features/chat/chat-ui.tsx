@@ -5,6 +5,7 @@ import { chatService, type ChatMessage } from '@/services/chat.service'
 import { useSession } from '@/components/layout/session-provider'
 import { formatRelativeDate } from '@/lib/display'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 interface ChatUIProps {
   applicationId: string
@@ -58,6 +59,14 @@ export function ChatUI({ applicationId, onNewMessage }: ChatUIProps) {
             })
             scrollToBottom()
             onNewMessage?.(newMsg)
+
+            const isFromCurrentUser = user?.id === newMsg.sender.id
+            if (!isFromCurrentUser) {
+              const senderName = newMsg.sender.full_name || newMsg.sender.role || 'Someone'
+              toast(`${senderName} sent a new message`, {
+                description: newMsg.content,
+              })
+            }
           }
         } catch (e) {
           console.error('WebSocket parse error:', e)

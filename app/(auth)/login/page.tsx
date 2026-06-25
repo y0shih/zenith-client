@@ -54,6 +54,10 @@ const heroVariants: Variants = {
 
 type LoginStep = 'credentials' | 'tenant_selection'
 
+function requiresTenantSelection(role: string | null | undefined) {
+  return role === 'employer' || role === 'tenant_admin' || role === 'user'
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const { isAuthenticated, isHydrated, setSession, user, activeTenantId } = useSession()
@@ -68,8 +72,8 @@ export default function LoginPage() {
   const [tenants, setTenants] = useState<TenantInfo[]>([])
 
   useEffect(() => {
-    if (isHydrated && isAuthenticated && (user?.role !== 'user' || activeTenantId)) {
-       router.replace(getDefaultRouteForRole(user?.role))
+    if (isHydrated && isAuthenticated && (!requiresTenantSelection(user?.role) || activeTenantId)) {
+      router.replace(getDefaultRouteForRole(user?.role))
     }
   }, [isAuthenticated, isHydrated, router, user?.role, activeTenantId])
 
@@ -81,8 +85,8 @@ export default function LoginPage() {
       try {
         const session = await authService.login({ email, password })
         
-        if (session.user.role === 'user') {
-          // Employers initially receive the 'user' global role and must select an organization
+        if (requiresTenantSelection(session.user.role)) {
+          // Tenant-scoped accounts must exchange the login token for a tenant-aware token before entering the workspace
           const userTenants = await authService.getMyTenants(session.tokens.access_token)
           
           if (userTenants.length === 0) {

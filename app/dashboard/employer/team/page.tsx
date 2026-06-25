@@ -85,7 +85,7 @@ export default function TeamManagementPage() {
           ...form,
           role: 'employer',
           tenant_id: activeTenantId
-        })
+        }, accessToken)
         
         toast.success('Employer account created.')
         setForm({ email: '', full_name: '', password: '' })

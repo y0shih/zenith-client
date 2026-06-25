@@ -15,8 +15,8 @@ export const authService = {
   login: (payload: LoginPayload) =>
     api.post<LoginResponseData>('/auth/login', payload).then((response) => response.data),
 
-  register: (payload: RegisterPayload) =>
-    api.post<RegisteredUserResponse>('/auth/register', payload).then((response) => response.data),
+  register: (payload: RegisterPayload, token?: string) =>
+    api.post<RegisteredUserResponse>('/auth/register', payload, { token }).then((response) => response.data),
 
   refreshToken: (refreshToken: string, tenantId?: string | null) =>
     api

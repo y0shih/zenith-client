@@ -161,7 +161,7 @@ export default function AdminDashboard() {
         <div className="max-w-lg text-center space-y-4">
           <h1 className="font-heading text-4xl font-bold text-primary">System admin only</h1>
           <p className="text-secondary">
-            This dashboard requires a `system_admin` account from the live backend.
+            This dashboard requires a system admin account from the live backend.
           </p>
         </div>
       </main>
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
     <RoleShell
       roleLabel="System Administrator"
       title="Tenant Management"
-      subtitle="Live tenant administration against `/tenants` and `/auth/register-admin`."
+      subtitle="Create organizations, manage availability, and assign tenant administrators."
       navItems={navItems}
     >
       {isLoading ? (
@@ -191,7 +191,7 @@ export default function AdminDashboard() {
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
-            <SectionCard title="Create Tenant" description="Backed by `POST /tenants`.">
+            <SectionCard title="Create Tenant" description="Provision a new organization workspace.">
               <div className="grid gap-5">
                 <div className="space-y-2">
                   <Label htmlFor="tenant-name">Company Name</Label>
@@ -210,7 +210,7 @@ export default function AdminDashboard() {
               </div>
             </SectionCard>
 
-            <SectionCard title="Register Tenant Admin" description="Create a `tenant_admin` and link them to an organization.">
+            <SectionCard title="Register Tenant Admin" description="Create an administrator account and link it to an organization.">
               <div className="grid gap-5">
                 <div className="space-y-2">
                   <Label htmlFor="admin-tenant">Target Organization</Label>
@@ -250,7 +250,7 @@ export default function AdminDashboard() {
             </SectionCard>
           </div>
 
-          <SectionCard title="Tenant Directory" description="Live results from `GET /tenants`.">
+          <SectionCard title="Tenant Directory" description="Current organization records from the backend.">
             <div className="space-y-4">
               {tenants.length ? (
                 tenants.map((tenant) => (
